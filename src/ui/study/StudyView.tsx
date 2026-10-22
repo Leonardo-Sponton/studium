@@ -1,9 +1,9 @@
 import { useCallback, useContext, useEffect, useState } from "react";
-import { BookOpen, CalendarDays, FolderInput, FolderTree, Layers, Pencil, Plus, Settings2, Trash2 } from "lucide-react";
+import { BookOpen, FolderInput, Home, Layers, Pencil, Plus, Trash2 } from "lucide-react";
 import { parseCards } from "../../data/cards";
 import { isoDate } from "../../data/dates";
 import { flushAll } from "../../data/pending";
-import { average, COURSES_DIR, createAssignment, createCourse, createExam, loadCourses, type Course } from "../../data/school";
+import { COURSES_DIR, createAssignment, createCourse, createExam, loadCourses, type Course } from "../../data/school";
 import {
   appendCards,
   backlinks,
@@ -27,6 +27,7 @@ import {
   loadSubjects,
   resolveLink,
   subjectDirOf,
+  coverOf,
   workbenchProjectOf,
   type NewCard,
   type Subject,
@@ -39,26 +40,31 @@ import { useApp } from "../context";
 import { LinksCtx } from "../links";
 import type { WikiLinks } from "../../editor/wikiLinks";
 import { useHold } from "../useHold";
+import { CourseBar, PersonalHome, SchoolHome, scheduleMeta, schoolMeta, usePersonalView } from "./Homes";
+import { useCovers } from "./Covers";
 import { AddCard } from "./AddCard";
 import { CardReview, CardText } from "./CardReview";
 import { MaterialReader } from "./MaterialReader";
 import { NewMaterial } from "./NewMaterial";
-import { SchoolSubject, type SchoolTab } from "./SchoolSubject";
+import { SCHOOL_TABS, SchoolSubject, type SchoolTab } from "./SchoolSubject";
 import { CoursePage, NewCourse, NewDated, Timetable } from "./School";
-import { SubjectPage } from "./SubjectPage";
+import { groupOf, SubjectPage, type MaterialBox, type SubjectTab } from "./SubjectPage";
 import { SubjectTree } from "./SubjectTree";
 import { AssignmentPage, ExamPage } from "./WorkPages";
 import { NewProject, WorkbenchPage } from "./Workbench";
 import { GroupsDialog, MoveToGroup, useSavedGroups } from "./Groups";
 import { usePref } from "./prefs";
-import { dateLabel, gradeText } from "./school-ui";
+import { dateLabel } from "./school-ui";
 import { t, word } from "../../i18n";
 
-// Study (data/study, data/school), in two sections:
+// Study (data/study, data/school), two areas of the app with this same screen:
 //   Personal  subjects as a tree (groups, sub-subjects, their materials and notes), Obsidian-like
 //   School    courses → semesters → subjects with tabs (classes, handouts, assignments, exams…)
-// On the right: the open subject, material, note, assignment, exam, course or timetable (one at a
-// time on the phone; back goes up one level).
+// With nothing open it shows the area's home (ui/study/Homes). Once something is open, in
+// Personal it takes the whole width (the tree beside it only in the list view); in School the
+// semester's subjects stay on the left. The open thing is a subject, material, note, assignment,
+// exam, course or timetable (one at a time on the phone; back goes up one level, from a personal
+// subject to its group's page, and from the top back home).
 
 /** Subjects with their materials and notes, reloaded whenever data on disk changes. */
 export function useStudy(): Subject[] {
@@ -89,7 +95,7 @@ export function useCourses(): Course[] {
 
 /** What the detail pane shows. */
 type Pane =
-  | { kind: "subject"; path: string; tab?: SchoolTab | "pdf" | "exercises" }
+  | { kind: "subject"; path: string; tab?: Tab; box?: MaterialBox }
   | { kind: "summary"; path: string }
   | { kind: "material"; path: string; chapter?: number | null }
   | { kind: "note"; path: string; isNew?: boolean }
@@ -101,7 +107,19 @@ type Pane =
   | { kind: "course"; path: string }
   | { kind: "timetable" };
 
-type Section = "personal" | "school";
+export type Section = "personal" | "school";
+
+/** A tab of a subject's page: school (SchoolSubject) or personal (SubjectPage), and old names. */
+type Tab = SchoolTab | SubjectTab | "pdf" | "exercises";
+
+/** The personal tab and materials list a pane's tab names. */
+function personalTab(tab: Tab | undefined, box: MaterialBox | undefined): [SubjectTab, MaterialBox] {
+  if (tab === "pdf" || tab === "exercises" || tab === "links") return ["materials", tab];
+  if (tab === "handouts" || tab === "materials") return ["materials", box ?? "md"];
+  if (tab === "classes") return ["notes", "md"];
+  if (tab === "cards" || tab === "notes" || tab === "workbench") return [tab, box ?? "md"];
+  return ["overview", box ?? "md"];
+}
 
 export interface StudyRequest {
   path?: string;
@@ -114,9 +132,9 @@ const subjectPathOf = (path: string) => `${subjectDirOf(path)}/subject.md`;
 const isAssignmentPath = (p: string) => /^study\/[^/]+\/assignments\/[^/]+\//.test(p);
 const isExamPath = (p: string) => /^study\/[^/]+\/exams\/[^/]+\.md$/.test(p);
 
-function NewSubject(props: { personal: Subject[]; groups: string[]; school: boolean; onOk(title: string, group: string, parent: string): void; onClose(): void }) {
+function NewSubject(props: { personal: Subject[]; groups: string[]; group?: string; school: boolean; onOk(title: string, group: string, parent: string): void; onClose(): void }) {
   const [title, setTitle] = useState("");
-  const [group, setGroup] = useState("");
+  const [group, setGroup] = useState(props.group ?? "");
   const [parent, setParent] = useState("");
   const ok = () => title.trim() && props.onOk(title, group, parent);
   const enter = (e: React.KeyboardEvent) => e.key === "Enter" && ok();
@@ -219,12 +237,17 @@ function CardsHelp(props: { body: string; onClose(): void }) {
   );
 }
 
+/** The section a study path belongs to (School: courses and school subjects). */
+export function sectionOf(subjects: Subject[], path: string): Section {
+  if (path.startsWith(`${COURSES_DIR}/`)) return "school";
+  const s = subjects.find(x => x.path === subjectPathOf(path.replace(/^summary:/, "")));
+  return s && isSchool(s) ? "school" : "personal";
+}
+
 function SchoolRow(props: { s: Subject; course?: Course; active: boolean; onOpen(): void; onMenu(): void }) {
   const { s } = props;
   const hold = useHold(props.onMenu);
-  const avg = average([...s.assignments, ...s.exams]);
-  const today = isoDate();
-  const next = [...s.assignments.filter(a => (a.status === "todo" || a.status === "doing") && a.due >= today).map(a => a.due), ...s.exams.filter(x => x.date >= today && x.grade === null).map(x => x.date)].sort()[0];
+  const meta = schoolMeta(s);
   return (
     <li {...hold.handlers}>
       <button className={`list-item${props.active ? " active" : ""}`} onClick={() => !hold.eaten() && props.onOpen()}>
@@ -232,35 +255,31 @@ function SchoolRow(props: { s: Subject; course?: Course; active: boolean; onOpen
           {s.title}
           {s.result !== "taking" && <span className={`result-tag ${s.result}`}>{t.school.results[s.result]}</span>}
         </span>
-        <span className="list-meta">
-          {[s.schedule.map(x => `${t.school.days[x.day]} ${x.from}`).join(", "), s.room, s.teacher].filter(Boolean).join(" · ")}
-        </span>
-        {(avg !== null || next || s.absences > 0) && (
-          <span className="list-meta">
-            {[
-              avg !== null ? t.school.averageShort(gradeText(avg)) : "",
-              s.absences ? t.school.absencesShort(s.absences) : "",
-              next ? t.school.nextDate(dateLabel(next)) : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        )}
+        <span className="list-meta">{scheduleMeta(s)}</span>
+        {meta && <span className="list-meta">{meta}</span>}
       </button>
     </li>
   );
 }
 
-export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }) {
+export function StudyView(props: {
+  section: Section;
+  subjects: Subject[];
+  request?: StudyRequest;
+  /** Opens a path of the other section (a [[link]] to it), in its own area. */
+  onElsewhere(path: string): void;
+}) {
   const { notes, bump, toast, confirmDelete } = useApp();
   const appLinks = useContext(LinksCtx);
   const { subjects } = props;
   const courses = useCourses();
-  const [section, setSection] = usePref<Section>("studium.study.section", "personal");
+  const { section } = props;
   const [courseId, setCourseId] = usePref<string>("studium.study.course", "");
   const [semesterPick, setSemesterPick] = useState<number | null>(null);
   const [pane, setPane] = useState<Pane | null>(null);
   const [adding, setAdding] = useState<"subject" | "course" | null>(null);
+  /** The group a new personal subject goes in (made from a group's page). */
+  const [addGroup, setAddGroup] = useState("");
   const [addingMaterial, setAddingMaterial] = useState<string | null>(null);
   const [addingCard, setAddingCard] = useState<string | null>(null);
   const [addingProject, setAddingProject] = useState<string | null>(null);
@@ -269,6 +288,10 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
   const [moving, setMoving] = useState<Subject | null>(null);
   const [managing, setManaging] = useState(false);
   const savedGroups = useSavedGroups();
+  const [view] = usePersonalView();
+  /** The group page open on the Personal home; it stays while a subject is open, for back. */
+  const [homeGroup, setHomeGroup] = useState<string | null>(null);
+  const covers = useCovers();
   const [help, setHelp] = useState<string | null>(null);
 
   const fail = useCallback((e: unknown) => toast({ text: e instanceof Error ? e.message : String(e), error: true }), [toast]);
@@ -289,19 +312,16 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
 
   /** Opens any study path in the detail pane, switching section when needed. */
   function open(path: string, chapter?: number) {
+    if (sectionOf(subjects, path) !== section) return props.onElsewhere(path);
     if (path.startsWith("summary:")) return setPane({ kind: "summary", path: path.slice(8) });
     if (path.startsWith(`${COURSES_DIR}/`)) {
-      setSection("school");
       setCourseId(path.slice(COURSES_DIR.length + 1, -3));
       return setPane({ kind: "course", path });
     }
     const s = subjects.find(x => x.path === subjectPathOf(path));
-    if (s) {
-      setSection(isSchool(s) ? "school" : "personal");
-      if (isSchool(s)) {
-        setCourseId(s.course);
-        if (s.semester) setSemesterPick(s.semester);
-      }
+    if (s && isSchool(s)) {
+      setCourseId(s.course);
+      if (s.semester) setSemesterPick(s.semester);
     }
     if (isSubjectPath(path)) setPane({ kind: "subject", path });
     else if (isExercisePath(path))
@@ -316,8 +336,10 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
   }
 
   /** The school tab an item lives in, to come back to it. */
-  const tabOf = (p: Pane): SchoolTab | "pdf" | "exercises" | undefined => {
+  const tabOf = (p: Pane): Tab | undefined => {
     if (p.kind === "exercise") return "exercises";
+    if (p.kind === "project") return "workbench";
+    if (p.kind === "note" && !subjectOf(p.path)?.course) return "notes";
     if (p.kind === "material") return "handouts";
     if (p.kind === "assignment") return "work";
     if (p.kind === "exam") return "exams";
@@ -330,7 +352,12 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
 
   const up = () => {
     if (!pane) return;
-    if (pane.kind === "subject" || pane.kind === "course" || pane.kind === "timetable") setPane(null);
+    if (pane.kind === "subject") {
+      // Up from a personal subject is its group's page.
+      const s = subjects.find(x => x.path === pane.path);
+      if (s && !isSchool(s)) setHomeGroup(groupOf(subjects, s));
+      setPane(null);
+    } else if (pane.kind === "course" || pane.kind === "timetable") setPane(null);
     else if (pane.kind === "review") setPane(pane.only ? { kind: "subject", path: pane.only, tab: "cards" } : null);
     else setPane({ kind: "subject", path: subjectPathOf(pane.path), tab: tabOf(pane) });
   };
@@ -480,7 +507,7 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
         <SchoolSubject
           {...common}
           course={courses.find(c => c.id === s.course)}
-          tab={!pane.tab || pane.tab === "pdf" || pane.tab === "exercises" ? "overview" : pane.tab}
+          tab={SCHOOL_TABS.includes(pane.tab as SchoolTab) ? (pane.tab as SchoolTab) : "overview"}
           onTab={tab => setPane({ ...pane, tab })}
           onSyllabus={() => setPane({ kind: "summary", path: s.path })}
           onNewClass={() => newClass(s.dir)}
@@ -496,7 +523,16 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
           {...common}
           all={subjects}
           groups={groups}
-          tab={pane.tab === "links" || pane.tab === "pdf" || pane.tab === "exercises" ? pane.tab : "md"}
+          cover={coverOf(covers, groupOf(subjects, s))}
+          tab={personalTab(pane.tab, pane.box)[0]}
+          box={personalTab(pane.tab, pane.box)[1]}
+          onTab={(tab, box) => setPane({ ...pane, tab, box: box ?? personalTab(pane.tab, pane.box)[1] })}
+          onGroup={g => {
+            setHomeGroup(g);
+            setPane(null);
+          }}
+          onSubject={x => setPane({ kind: "subject", path: x.path })}
+          onMaterial={(path, chapter) => setPane({ kind: "material", path, chapter: chapter ?? null })}
           onSummary={() => setPane({ kind: "summary", path: s.path })}
           onNewNote={() => newNote(s.dir)}
           onPdfNote={pdf => pdfNote(s, pdf)}
@@ -661,129 +697,108 @@ export function StudyView(props: { subjects: Subject[]; request?: StudyRequest }
 
   const activePath = pane && "path" in pane ? pane.path : undefined;
   const activeSubject = activePath ? subjectPathOf(activePath) : pane?.kind === "review" ? pane.only : undefined;
-  const shown = section === "school" ? subjects.filter(s => isSchool(s)) : personal;
-  const due = dueCards(shown);
   const semesterSubjects = course ? subjects.filter(s => s.course === course.id && s.semester === semester).sort((a, b) => a.title.localeCompare(b.title)) : [];
+  const pickCourse = (id: string) => {
+    setCourseId(id);
+    setSemesterPick(null);
+  };
+  const newSubject = (group = "") => {
+    setAddGroup(group);
+    setAdding(section === "school" && !course ? "course" : "subject");
+  };
+  const openSubject = (s: Subject) => setPane({ kind: "subject", path: s.path });
 
+  // Nothing open: the area's home, the whole width.
+  const home =
+    section === "personal" ? (
+      <PersonalHome
+        subjects={personal}
+        groups={groups}
+        onSubject={openSubject}
+        onMenu={setMenu}
+        onOpen={p => open(p)}
+        onNew={newSubject}
+        onGroups={() => setManaging(true)}
+        onReview={() => setPane({ kind: "review", section })}
+        group={homeGroup}
+        onGroup={setHomeGroup}
+      />
+    ) : (
+      <SchoolHome
+        subjects={subjects}
+        courses={courses}
+        course={course}
+        semester={semester}
+        semesterSubjects={semesterSubjects}
+        onCourse={pickCourse}
+        onSemester={setSemesterPick}
+        onTimetable={() => setPane({ kind: "timetable" })}
+        onCourseSettings={() => course && setPane({ kind: "course", path: course.path })}
+        onNewCourse={() => setAdding("course")}
+        onNewSubject={() => newSubject()}
+        onSubject={openSubject}
+        onMenu={setMenu}
+        onAssignment={path => setPane({ kind: "assignment", path })}
+        onExam={path => setPane({ kind: "exam", path })}
+        onReview={() => setPane({ kind: "review", section })}
+      />
+    );
+
+  // Something open takes the whole width; only the list view keeps the tree (or, in School, the
+  // semester's subjects) on its left.
+  const focus = section === "personal" && view === "cards";
   return (
-    <div className={`split${pane ? " has-detail" : ""}`}>
-      <div className="list-pane">
-        <div className="list-head">
-          <h1>{t.study.title}</h1>
-          <button className="btn primary" onClick={() => setAdding(section === "school" && !course ? "course" : "subject")}>
-            <Plus size={18} /> {t.common.new}
-          </button>
-        </div>
-        <div className="segmented study-sections" role="tablist">
-          <button role="tab" aria-pressed={section === "personal"} onClick={() => setSection("personal")}>
-            {t.study.personal}
-          </button>
-          <button role="tab" aria-pressed={section === "school"} onClick={() => setSection("school")}>
-            {t.study.school}
-          </button>
-        </div>
-        {due.length > 0 && (
-          <button className="today-card review-all" onClick={() => setPane({ kind: "review", section })}>
-            <Layers size={18} />
-            <span>{t.study.reviewAll(due.length)}</span>
-          </button>
-        )}
-
-        {section === "personal" && (
-          <div className="row study-tools">
-            <button className="btn ghost" onClick={() => setManaging(true)}>
-              <FolderTree size={16} /> {t.study.groups}
+    <div className={!pane ? "study-area" : focus ? "split has-detail focus" : "split has-detail"}>
+      {!pane ? (
+        home
+      ) : focus ? null : (
+        <div className="list-pane">
+          <div className="list-head">
+            <button className="btn ghost study-home-link" onClick={() => setPane(null)} title={t.study.home} aria-label={t.study.home}>
+              <Home size={18} /> <h1>{section === "school" ? t.area.school : t.area.personal}</h1>
+            </button>
+            <button className="btn primary icon" title={t.common.new} aria-label={t.common.new} onClick={() => newSubject()}>
+              <Plus size={18} />
             </button>
           </div>
-        )}
-        {section === "personal" &&
-          (personal.length === 0 && groups.length === 0 ? (
-            <p className="muted empty-note">{t.study.empty}</p>
-          ) : (
+          {section === "personal" && (
             <SubjectTree
               subjects={personal}
               groups={groups}
-              active={pane?.kind === "subject" ? pane.path : activePath}
-              onSubject={s => setPane({ kind: "subject", path: s.path })}
+              active={pane.kind === "subject" ? pane.path : activePath}
+              onSubject={openSubject}
               onMenu={setMenu}
               onOpen={p => open(p)}
             />
-          ))}
-
-        {section === "school" &&
-          (!course ? (
-            <div className="stack empty-note">
-              <p className="muted">{t.school.empty}</p>
-              <button className="btn primary" style={{ alignSelf: "flex-start" }} onClick={() => setAdding("course")}>
-                <Plus size={16} /> {t.school.newCourse}
-              </button>
-            </div>
-          ) : (
+          )}
+          {section === "school" && course && (
             <>
-              <div className="row study-tools">
-                <button className="btn ghost" onClick={() => setAdding("course")}>
-                  <Plus size={16} /> {t.school.newCourse}
-                </button>
-              </div>
-              <div className="course-head">
-                {courses.length > 1 ? (
-                  <select
-                    className="field"
-                    value={course.id}
-                    aria-label={t.school.course}
-                    onChange={e => {
-                      setCourseId(e.target.value);
-                      setSemesterPick(null);
-                    }}
-                  >
-                    {courses.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="course-title">{course.title}</span>
-                )}
-                <button className="btn ghost icon" title={t.school.timetable} aria-label={t.school.timetable} onClick={() => setPane({ kind: "timetable" })}>
-                  <CalendarDays size={18} />
-                </button>
-                <button className="btn ghost icon" title={t.school.courseSettings} aria-label={t.school.courseSettings} onClick={() => setPane({ kind: "course", path: course.path })}>
-                  <Settings2 size={18} />
-                </button>
-              </div>
-              <p className="muted small course-meta">
-                {[course.institution, t.school.semesterOf(course.current, course.semesters)].filter(Boolean).join(" · ")}
-              </p>
-              <div className="chips" role="tablist" aria-label={t.school.fSemester}>
-                {Array.from({ length: course.semesters }, (_, i) => i + 1).map(n => (
-                  <button key={n} role="tab" aria-selected={semester === n} className={`chip${semester === n ? " active" : ""}`} onClick={() => setSemesterPick(n)}>
-                    {t.school.semesterShort(n)}
-                    {n === course.current && <span className="dot" aria-label={t.school.currentSemester} />}
-                  </button>
-                ))}
-              </div>
+              <CourseBar
+                courses={courses}
+                course={course}
+                semester={semester}
+                onCourse={pickCourse}
+                onSemester={setSemesterPick}
+                onTimetable={() => setPane({ kind: "timetable" })}
+                onSettings={() => setPane({ kind: "course", path: course.path })}
+              />
               {semesterSubjects.length === 0 ? (
                 <p className="muted empty-note">{t.school.noSubjects}</p>
               ) : (
                 <ul className="list">
                   {semesterSubjects.map(s => (
-                    <SchoolRow key={s.path} s={s} course={course} active={activeSubject === s.path} onOpen={() => setPane({ kind: "subject", path: s.path })} onMenu={() => setMenu(s)} />
+                    <SchoolRow key={s.path} s={s} course={course} active={activeSubject === s.path} onOpen={() => openSubject(s)} onMenu={() => setMenu(s)} />
                   ))}
                 </ul>
               )}
-              <div className="row" style={{ gap: 8, padding: "8px 0", flexWrap: "wrap" }}>
-                <button className="btn ghost" onClick={() => setAdding("subject")}>
-                  <Plus size={16} /> {t.school.newSubject}
-                </button>
-              </div>
             </>
-          ))}
-      </div>
-      <div className="detail-pane">{detail}</div>
+          )}
+        </div>
+      )}
+      {pane && <div className="detail-pane">{detail}</div>}
       {managing && <GroupsDialog subjects={subjects} saved={savedGroups} onClose={() => setManaging(false)} />}
       {moving && <MoveToGroup subject={moving} groups={groups} onPick={g => moveToGroup(moving, g)} onClose={() => setMoving(null)} />}
-      {adding === "subject" && <NewSubject personal={personal} groups={groups} school={section === "school"} onOk={createSub} onClose={() => setAdding(null)} />}
+      {adding === "subject" && <NewSubject personal={personal} groups={groups} group={addGroup} school={section === "school"} onOk={createSub} onClose={() => setAdding(null)} />}
       {adding === "course" && <NewCourse onOk={addCourse} onClose={() => setAdding(null)} />}
       {addingMaterial && <NewMaterial onOk={f => addMaterial(addingMaterial, f)} onClose={() => setAddingMaterial(null)} />}
       {addingProject && <NewProject onOk={(title, desc, guide) => addProject(addingProject, title, desc, guide)} onClose={() => setAddingProject(null)} />}

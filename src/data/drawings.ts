@@ -77,6 +77,14 @@ function sectionText(text: string, head: string) {
   return end < 0 ? rest : rest.slice(0, end);
 }
 
+/** The words written in a drawing (its "## Text Elements"), one per line: what search reads. */
+export const drawingText = (text: string) =>
+  sectionText(text, "## Text Elements")
+    .split("\n")
+    .map(l => l.replace(/\s*\^[\w-]+\s*$/, "").trim())
+    .filter(Boolean)
+    .join("\n");
+
 /** LZ-String base64, in lines of 256 characters with a blank line between (as the plugin writes). */
 export function compressScene(json: string) {
   const all = LZString.compressToBase64(json);

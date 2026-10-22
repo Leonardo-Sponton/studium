@@ -5,6 +5,7 @@ import { moveToTrash, restoreFromTrash } from "../../data/trash";
 import { Dialog } from "../Dialog";
 import { useApp } from "../context";
 import { LinksBox } from "./LinksBox";
+import { TitleFiles, titledName, type TitledFile } from "./TitleFiles";
 import { t } from "../../i18n";
 
 // A subject's exercises (data/study exercises/): lists written in the app or imported as .md
@@ -18,16 +19,21 @@ export function ExercisesBox(props: { subject: Subject; onOpen(path: string): vo
   const [naming, setNaming] = useState(false);
   const fail = (e: unknown) => toast({ text: e instanceof Error ? e.message : String(e), error: true });
 
-  const pick = async (list: FileList | null) => {
-    if (!list?.length) return;
+  // Picked files wait here for their titles.
+  const [picked, setPicked] = useState<File[] | null>(null);
+
+  const pick = (list: FileList | null) => {
+    if (list?.length) setPicked(Array.from(list));
+    if (input.current) input.current.value = "";
+  };
+  const add = async (list: TitledFile[]) => {
+    setPicked(null);
     try {
-      for (const file of Array.from(list)) await addExerciseFile(notes, s.dir, file.name, new Uint8Array(await file.arrayBuffer()));
+      for (const f of list) await addExerciseFile(notes, s.dir, titledName(f), new Uint8Array(await f.file.arrayBuffer()), f.title);
       bump();
       toast({ text: t.study.exerciseFilesAdded(list.length) });
     } catch (e) {
       fail(e);
-    } finally {
-      if (input.current) input.current.value = "";
     }
   };
   const remove = async (path: string, title: string) => {
@@ -91,6 +97,7 @@ export function ExercisesBox(props: { subject: Subject; onOpen(path: string): vo
       <div className="exercise-group stack" style={{ gap: 8 }}>
         <LinksBox dir={`${s.dir}/${EXERCISES_DIR}`} links={ex.links} heading={t.study.exerciseLinks} empty={t.study.noExerciseLinks} />
       </div>
+      {picked && <TitleFiles files={picked} heading={t.study.addExerciseFile} onOk={add} onClose={() => setPicked(null)} />}
       {naming && (
         <NameDialog
           onOk={title => {

@@ -27,7 +27,8 @@ import { addFile, CLASS_RESULTS, loadAssignments, num, slotsOf, toExam, type Ass
 //   exercises/            exercises to practise with: lists written or imported as .md ("# Title"),
 //                         PDFs (opened in the device's PDF app) and a links.md like the subject's
 //   assignments/, exams/  school subjects only (data/school)
-// study/_groups.md keeps the personal groups (their order, and groups with no subject yet).
+// study/_groups.md keeps the personal groups (their order, and groups with no subject yet);
+// study/_covers/ their cover pictures.
 // Notes link to each other with [[Title]] (a note, a material or a subject, by title).
 
 /** Title and the rest of a note: its "# " heading, or else its first line. */
@@ -296,7 +297,7 @@ const toExerciseDoc = (n: Note): ExerciseDoc => {
     .filter(Boolean)
     .join(" · ")
     .slice(0, 140);
-  return { path: n.path, title: title || n.path.slice(n.path.lastIndexOf("/") + 1, -3), preview, modified: str(n.data.modified ?? n.data.created) };
+  return { path: n.path, title: str(n.data.title) || title || n.path.slice(n.path.lastIndexOf("/") + 1, -3), preview, modified: str(n.data.modified ?? n.data.created) };
 };
 
 export async function loadExercises(notes: Notes, subjectDir: string, onError?: (p: string) => void): Promise<Exercises> {
@@ -313,9 +314,16 @@ export async function createExercise(notes: Notes, subjectDir: string, title: st
   return notes.create(await notes.freePath(dir, slugify(title) || stamp(at)), { type: "exercise" }, `# ${title.trim()}\n\n`);
 }
 
-/** Copies a picked .md or .pdf into exercises/ (renamed when the name is taken). Returns its file name. */
-export const addExerciseFile = (notes: Notes, subjectDir: string, name: string, data: Uint8Array) =>
-  addFile(notes.storage, `${subjectDir}/${EXERCISES_DIR}`, name, data);
+/**
+ * Copies a picked .md or .pdf into exercises/ (renamed when the name is taken). A .md keeps
+ * `title` in its header, shown instead of its first heading. Returns its file name.
+ */
+export async function addExerciseFile(notes: Notes, subjectDir: string, name: string, data: Uint8Array, title?: string): Promise<string> {
+  const dir = `${subjectDir}/${EXERCISES_DIR}`;
+  const added = await addFile(notes.storage, dir, name, data);
+  if (title?.trim() && /\.(md|markdown)$/i.test(added)) await notes.patchHeader(`${dir}/${added}`, { title: title.trim() });
+  return added;
+}
 
 // ---- Workbench ----
 
@@ -424,12 +432,46 @@ export async function renameGroup(notes: Notes, subjects: Subject[], saved: stri
   for (const s of subjects) if (!isSchool(s) && s.group === from) await notes.patchHeader(s.path, { group: to });
   const all = allGroups(saved, subjects);
   await saveGroups(notes, all.includes(to) ? all.filter(g => g !== from) : all.map(g => (g === from ? to : g)));
+  // The cover follows, unless the group it merges into has one.
+  const covers = await loadCovers(notes.storage);
+  const old = covers[slugify(from)];
+  if (old && !covers[slugify(to)]) await notes.storage.move(old, `${COVERS_DIR}/${slugify(to)}${old.slice(old.lastIndexOf("."))}`);
 }
 
 /** Removes a group; its subjects stay, with no group. */
 export async function deleteGroup(notes: Notes, subjects: Subject[], saved: string[], name: string): Promise<void> {
   for (const s of subjects) if (!isSchool(s) && s.group === name) await notes.patchHeader(s.path, { group: undefined });
   await saveGroups(notes, allGroups(saved, subjects).filter(g => g !== name));
+  await removeGroupCover(notes.storage, name);
+}
+
+// ---- Group covers (personal) ----
+// study/_covers/<group slug>.jpg: the picture on a group's card (Study → cards view).
+
+export const COVERS_DIR = "study/_covers";
+const COVER_EXTS = /\.(jpe?g|png|webp|gif|avif)$/i;
+
+/** Cover pictures by group slug. */
+export async function loadCovers(storage: Notes["storage"]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const f of await storage.list(COVERS_DIR))
+    if (!f.isDir && COVER_EXTS.test(f.name) && !f.name.includes(".tmp-")) out[f.name.replace(COVER_EXTS, "")] = `${COVERS_DIR}/${f.name}`;
+  return out;
+}
+
+export const coverOf = (covers: Record<string, string>, group: string) => (group ? covers[slugify(group)] : undefined);
+
+/** Sets a group's cover (`ext` like ".jpg"), replacing the one it had. */
+export async function setGroupCover(storage: Notes["storage"], group: string, ext: string, data: Uint8Array): Promise<string> {
+  await removeGroupCover(storage, group);
+  const path = `${COVERS_DIR}/${slugify(group)}${ext}`;
+  await storage.writeBinary(path, data);
+  return path;
+}
+
+export async function removeGroupCover(storage: Notes["storage"], group: string): Promise<void> {
+  const old = coverOf(await loadCovers(storage), group);
+  if (old) await storage.remove(old);
 }
 export const materialName = (path: string) => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/, "");
 

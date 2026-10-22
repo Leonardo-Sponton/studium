@@ -9,16 +9,10 @@ Um caderno de estudos para matérias, apostilas, PDFs, anotações, flashcards e
 Um app para <b>Linux</b> e <b>Android</b>, 100% offline, com os dados guardados em arquivos Markdown comuns.
 </p>
 
-<p align="center">
-<img src="docs/screenshots/pc-subject-pt.png" width="100%" alt="Studium no Linux: uma matéria com apostila, PDFs, anotações e flashcards">
-</p>
-
-<p align="center">
-<img src="docs/screenshots/phone-today-pt.png" width="24%" alt="Hoje no celular: aulas de hoje e o cartão de revisão">
-<img src="docs/screenshots/phone-study-pt.png" width="24%" alt="Árvore de estudos no celular">
-<img src="docs/screenshots/phone-notes-pt.png" width="24%" alt="Anotações de uma matéria no celular">
-<img src="docs/screenshots/phone-review-pt.png" width="24%" alt="Revisando um flashcard no celular">
-</p>
+> [!NOTE]
+> **O Studium é um app de estudos em desenvolvimento.** Já funciona no Linux e no Android, mas
+> telas e formatos de arquivo ainda podem mudar. Ainda não há versão empacotada: compile a partir
+> do código (veja abaixo).
 
 ## Por quê
 
@@ -37,7 +31,7 @@ Um app para <b>Linux</b> e <b>Android</b>, 100% offline, com os dados guardados 
 | Área | O que faz |
 | --- | --- |
 | **Hoje** | As aulas de hoje (do horário da faculdade), os flashcards para revisar e o capítulo onde você parou. |
-| **Estudos pessoais** | Matérias numa árvore como a do Obsidian (grupos → matérias → submatérias), cada uma com "com minhas palavras" (Feynman), materiais, PDFs, exercícios, links com tipos (documentação, vídeo, artigo…), anotações e um Workbench de projetos práticos com guias. |
+| **Estudos pessoais** | Área própria, que abre numa página inicial com as matérias numa árvore como a do Obsidian (grupos → matérias → submatérias) ou em cards por grupo, com capa; cada uma com "com minhas palavras" (Feynman), materiais, PDFs, exercícios, links com tipos (documentação, vídeo, artigo…), anotações e um Workbench de projetos práticos com guias. |
 | **Materiais** | Apostilas importadas de arquivos `.md` ou coladas, lidas capítulo por capítulo, com marcação de lido e "você parou aqui". |
 | **Anotações** | Por material, capítulo ou PDF, com etiquetas, filtros e ordens; `[[links]]` entre anotações, materiais e matérias, com backlinks. |
 | **Flashcards** | Escritos dentro das anotações com as marcas do Spaced Repetition do Obsidian (`::`, `:::`, `?`, `??`), revisados com um SM-2 simplificado por matéria ou tudo de uma vez. |
@@ -56,6 +50,7 @@ Studium/
 ├── study/
 │   ├── _courses/          um arquivo por curso
 │   ├── _groups.md         ordem dos grupos pessoais
+│   ├── _covers/           capas dos grupos
 │   └── <matéria>/
 │       ├── subject.md     título, grupo, matéria-mãe; o corpo é "com minhas palavras"
 │       ├── materials/     apostilas, lidas por capítulo
@@ -116,7 +111,7 @@ app do PC. O `adb` é procurado no `PATH` ou em `~/Android/Sdk/platform-tools`.
 
 ## Dados de exemplo
 
-Para ver todas as telas preenchidas (as imagens acima foram feitas assim):
+Para ver todas as telas preenchidas:
 
 ```sh
 node tools/sample-data.mjs add ~/StudiumDemo --lang pt   # português

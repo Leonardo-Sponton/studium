@@ -19,7 +19,9 @@ src/
 └── ui/
     ├── Shell.tsx       areas: Today, Study, Search, Trash, Sync, Settings (bottom bar on phones)
     ├── App.tsx         boot, settings, toasts, delete confirmation, drawing editor
-    └── study/          the study screens (tree, subject page, reader, notes, cards, school, workbench)
+    └── study/          the study screens: Personal study and School are areas of their own, each
+                        opening on a home (Homes.tsx); tree, subject page, reader, notes, cards,
+                        school, workbench
 electron/               main process (window, file API limited to the data folder, PDF export, adb sync)
 android/                Capacitor project; StudiumFilesPlugin.java gives file access and the "Review" shortcut
 tools/                  sample data, icons, license notices, Excalidraw fonts

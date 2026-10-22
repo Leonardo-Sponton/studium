@@ -1,8 +1,9 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ExternalLink, FileText, FileUp, NotebookPen, Trash2 } from "lucide-react";
 import { addPdf, type Subject } from "../../data/study";
 import { moveToTrash, restoreFromTrash } from "../../data/trash";
 import { useApp } from "../context";
+import { TitleFiles, titledName, type TitledFile } from "./TitleFiles";
 import { t } from "../../i18n";
 
 // A subject's PDFs (data/study pdfs/): added from a file, opened in the device's PDF app (the
@@ -16,16 +17,21 @@ export function PdfBox(props: { subject: Subject; onNote(pdf: string): void }) {
   const input = useRef<HTMLInputElement>(null);
   const fail = (e: unknown) => toast({ text: e instanceof Error ? e.message : String(e), error: true });
 
-  const pick = async (list: FileList | null) => {
-    if (!list?.length) return;
+  // Picked files wait here for their titles.
+  const [picked, setPicked] = useState<File[] | null>(null);
+
+  const pick = (list: FileList | null) => {
+    if (list?.length) setPicked(Array.from(list));
+    if (input.current) input.current.value = "";
+  };
+  const add = async (list: TitledFile[]) => {
+    setPicked(null);
     try {
-      for (const file of Array.from(list)) await addPdf(notes, s.dir, file.name, new Uint8Array(await file.arrayBuffer()));
+      for (const f of list) await addPdf(notes, s.dir, titledName(f), new Uint8Array(await f.file.arrayBuffer()));
       bump();
       toast({ text: t.study.pdfsAdded(list.length) });
     } catch (e) {
       fail(e);
-    } finally {
-      if (input.current) input.current.value = "";
     }
   };
   const remove = async (path: string, title: string) => {
@@ -74,6 +80,7 @@ export function PdfBox(props: { subject: Subject; onNote(pdf: string): void }) {
           })}
         </ul>
       )}
+      {picked && <TitleFiles files={picked} heading={t.study.addPdf} onOk={add} onClose={() => setPicked(null)} />}
     </>
   );
 }

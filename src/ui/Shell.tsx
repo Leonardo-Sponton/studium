@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { GraduationCap, Menu, Search, Settings as SettingsIcon, Sun, Trash2, Usb } from "lucide-react";
+import { GraduationCap, Library, Menu, Search, Settings as SettingsIcon, Sun, Trash2, Usb } from "lucide-react";
 import { StudyCard } from "./study/CardReview";
-import { StudyView, useCourses, useStudy, type StudyRequest } from "./study/StudyView";
+import { sectionOf, StudyView, useCourses, useStudy, type Section, type StudyRequest } from "./study/StudyView";
 import { ClassesToday } from "./study/School";
 import { SearchView, type SearchState } from "./SearchView";
 import { SettingsView } from "./SettingsView";
@@ -15,11 +15,13 @@ import { QuickSwitcher, type Command } from "./QuickSwitcher";
 import { flushAll } from "../data/pending";
 import { t } from "../i18n";
 
-export type Area = "today" | "study" | "search" | "trash" | "sync" | "settings" | "more";
+// Personal study and School are areas of their own (one Study screen each, ui/study/StudyView).
+export type Area = "today" | "personal" | "school" | "search" | "trash" | "sync" | "settings" | "more";
 
 const AREAS: { id: Area; icon: ReactNode }[] = [
   { id: "today", icon: <Sun size={20} /> },
-  { id: "study", icon: <GraduationCap size={20} /> },
+  { id: "personal", icon: <Library size={20} /> },
+  { id: "school", icon: <GraduationCap size={20} /> },
   { id: "search", icon: <Search size={20} /> },
   { id: "trash", icon: <Trash2 size={20} /> },
   { id: "sync", icon: <Usb size={20} /> },
@@ -27,7 +29,12 @@ const AREAS: { id: Area; icon: ReactNode }[] = [
 ];
 
 // Phone bottom bar; the rest lives under More.
-const BOTTOM: Area[] = ["today", "study", "search", "more"];
+const BOTTOM: Area[] = ["today", "personal", "school", "search", "more"];
+
+/** Shorter names for the phone's bottom bar. */
+const barLabel = (id: Area | "more") => (id === "personal" ? t.study.personal : t.area[id]);
+
+const isStudyArea = (a: Area): a is Section => a === "personal" || a === "school";
 
 function More({ go }: { go: (a: Area) => void }) {
   return (
@@ -59,14 +66,16 @@ export function Shell(props: { startArea?: Area; openRequest?: OpenRequest }) {
   const study = useStudy();
   const courses = useCourses();
   const [studyRequest, setStudyRequest] = useState<StudyRequest | undefined>();
+  /** Opens a study path (or the review) in the area it belongs to. */
   const openStudy = (r: Omit<StudyRequest, "key">) => {
     setStudyRequest({ ...r, key: Date.now() });
-    setArea("study");
+    setArea(r.path ? sectionOf(study, r.path) : isStudyArea(areaRef.current) ? areaRef.current : "personal");
   };
   const [search, setSearch] = useState<SearchState>({ text: "", area: "", since: "any" });
   const [searchKey, setSearchKey] = useState(0);
   const go = (a: Area) => {
-    setStudyRequest(a === "study" ? { key: Date.now() } : undefined);
+    // A study area opens on its home.
+    setStudyRequest(isStudyArea(a) ? { key: Date.now() } : undefined);
     setArea(a);
   };
 
@@ -118,7 +127,9 @@ export function Shell(props: { startArea?: Area; openRequest?: OpenRequest }) {
     if (!openRequest) return;
     const [kind, ...rest] = openRequest.target.split(":");
     const arg = rest.join(":");
-    if (kind === "area" && AREAS.some(a => a.id === arg)) go(arg as Area);
+    // "area:study" from before the split opens Personal study.
+    if (kind === "area" && arg === "study") go("personal");
+    else if (kind === "area" && AREAS.some(a => a.id === arg)) go(arg as Area);
     else if (kind === "review") setPendingReview(true);
   }, [openRequest]);
   useEffect(() => {
@@ -144,17 +155,22 @@ export function Shell(props: { startArea?: Area; openRequest?: OpenRequest }) {
             <h1>{t.area.today}</h1>
             {classes}
             {cards}
-            <button className="today-card" onClick={() => go("study")}>
+            <button className="today-card" onClick={() => go("personal")}>
+              <Library size={18} />
+              <span>{t.today.openPersonal}</span>
+            </button>
+            <button className="today-card" style={{ marginTop: 0 }} onClick={() => go("school")}>
               <GraduationCap size={18} />
-              <span>{t.today.openStudy}</span>
+              <span>{t.today.openSchool}</span>
             </button>
           </div>
         </div>
       );
       break;
     }
-    case "study":
-      page = <StudyView subjects={study} request={studyRequest} />;
+    case "personal":
+    case "school":
+      page = <StudyView key={area} section={area} subjects={study} request={studyRequest} onElsewhere={path => openStudy({ path })} />;
       break;
     case "settings":
       page = <SettingsView />;
@@ -221,7 +237,7 @@ export function Shell(props: { startArea?: Area; openRequest?: OpenRequest }) {
           return (
             <button key={id} className={`nav-item${active ? " active" : ""}`} onClick={() => go(id)}>
               {a ? a.icon : <Menu size={20} />}
-              <span>{t.area[id]}</span>
+              <span>{barLabel(id)}</span>
             </button>
           );
         })}

@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { ArrowLeft, Pencil, Search, X } from "lucide-react";
 import { loadDocs, search, type Doc, type Since } from "../data/search";
 import { NoteEditor } from "./NoteEditor";
 import { useApp } from "./context";
+import { drawingSvg, onDrawingSaved } from "./drawing/excalidraw";
+import { drawingTitle } from "../data/drawings";
 import { t } from "../i18n";
 
 // Global search (SPEC 4.4): every area, ignores accents and case, filters by area and date.
-// Study files open in the Study screen; other files (templates, drawings) open here.
+// Study files open in the Study screen; other files open here (templates as text, drawings as
+// the picture, with a button to the drawing editor).
 
 export interface SearchState {
   text: string;
@@ -16,7 +19,7 @@ export interface SearchState {
 
 const AREAS = ["study"];
 
-export const areaLabel = (a: string) => (AREAS.includes(a) ? t.area[a as keyof typeof t.area] : a);
+export const areaLabel = (a: string) => (a === "drawings" ? t.drawings.title : AREAS.includes(a) ? t.area[a as keyof typeof t.area] : a);
 
 const SINCE: Since[] = ["any", "week", "month", "year"];
 
@@ -143,10 +146,59 @@ export function SearchView({ state, setState, focusKey, openElsewhere }: Props) 
         )}
       </div>
       <div className="detail-pane">
-        {open ? (
+        {open && docs?.find(d => d.path === open)?.drawing ? (
+          <DrawingPreview key={open} path={open} onBack={() => setOpen(null)} />
+        ) : open ? (
           <NoteEditor key={open} path={open} onBack={() => setOpen(null)} />
         ) : (
           <div className="detail-empty muted">{t.search.opensHere}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** A drawing found by search: the picture, redrawn when it is saved, and Edit. */
+function DrawingPreview(props: { path: string; onBack(): void }) {
+  const { notes, openDrawing } = useApp();
+  const [svg, setSvg] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [saved, setSaved] = useState(0);
+  useEffect(() => onDrawingSaved(p => p === props.path && setSaved(n => n + 1)), [props.path]);
+  useEffect(() => {
+    let alive = true;
+    setFailed(false);
+    drawingSvg(notes.storage, props.path).then(
+      x => alive && setSvg(x),
+      () => alive && setFailed(true),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [notes, props.path, saved]);
+  const edit = () => openDrawing(props.path);
+  return (
+    <div className="note-editor">
+      <div className="note-bar">
+        <button className="btn ghost icon back" onClick={props.onBack} aria-label={t.common.back}>
+          <ArrowLeft size={20} />
+        </button>
+        <span className="list-title one-line drawing-preview-title">{drawingTitle(props.path)}</span>
+        <button className="btn" onClick={edit}>
+          <Pencil size={16} /> {t.common.edit}
+        </button>
+      </div>
+      <div className="drawing-preview">
+        {failed ? (
+          <p className="err">{t.common.couldNotRead(props.path)}</p>
+        ) : svg === null ? (
+          <p className="muted">{t.search.reading}</p>
+        ) : svg ? (
+          <button className="drawing-preview-pic" onClick={edit} title={t.common.edit} dangerouslySetInnerHTML={{ __html: svg }} />
+        ) : (
+          <button className="btn ghost" onClick={edit}>
+            {t.drawings.emptyDrawing}
+          </button>
         )}
       </div>
     </div>

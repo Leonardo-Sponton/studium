@@ -18,6 +18,7 @@ import { useApp } from "../context";
 import { useBack } from "../useBack";
 import { useNoteFile, type NoteFile } from "../useNoteFile";
 import { LinksBox } from "./LinksBox";
+import { TitleFiles, titledName, type TitledFile } from "./TitleFiles";
 import { t, word } from "../../i18n";
 
 // Workbench (data/study workbench/): projects made to study a subject in depth. The subject page
@@ -203,16 +204,20 @@ export function WorkbenchPage(props: { project: WorkbenchProject; onBack(): void
   const d = f.note ? f.data() : {};
   const status = (WORKBENCH_STATUSES as readonly string[]).includes(String(d.status)) ? (d.status as WorkbenchStatus) : p.status;
 
-  const pick = async (list: FileList | null) => {
-    if (!list?.length) return;
+  // Picked files wait here for their titles.
+  const [picked, setPicked] = useState<File[] | null>(null);
+  const pick = (list: FileList | null) => {
+    if (list?.length) setPicked(Array.from(list));
+    if (input.current) input.current.value = "";
+  };
+  const add = async (list: TitledFile[]) => {
+    setPicked(null);
     try {
-      for (const file of Array.from(list)) await addProjectFile(notes, p.dir, file.name, new Uint8Array(await file.arrayBuffer()));
+      for (const x of list) await addProjectFile(notes, p.dir, titledName(x), new Uint8Array(await x.file.arrayBuffer()));
       bump();
       toast({ text: t.school.filesAdded(list.length) });
     } catch (e) {
       fail(e);
-    } finally {
-      if (input.current) input.current.value = "";
     }
   };
   const replaceNotes = (text: string, done: string) => {
@@ -324,10 +329,15 @@ export function WorkbenchPage(props: { project: WorkbenchProject; onBack(): void
               </p>
             ) : (
               <ul className="list">
-                {p.files.map(name => (
+                {p.files.map(name => {
+                  const dot = name.lastIndexOf(".");
+                  return (
                   <li key={name} className="row file-row">
-                    <button className="list-item" onClick={() => fileOpen(name)} disabled={!platform.openFile}>
-                      <span className="list-title one-line">{name}</span>
+                    <button className="list-item" onClick={() => fileOpen(name)} disabled={!platform.openFile} title={name}>
+                      <span className="list-title one-line">
+                        {dot > 0 && <span className="note-tag ex-tag">{name.slice(dot + 1).toLowerCase()}</span>}
+                        {dot > 0 ? name.slice(0, dot) : name}
+                      </span>
                       <span className="list-meta">
                         <ExternalLink size={12} /> {t.school.openFile}
                       </span>
@@ -336,7 +346,8 @@ export function WorkbenchPage(props: { project: WorkbenchProject; onBack(): void
                       <X size={16} />
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
 
@@ -370,6 +381,7 @@ export function WorkbenchPage(props: { project: WorkbenchProject; onBack(): void
       )}
       {guides && <GuidesDialog empty={!f.body().trim()} onPick={applyGuide} onClose={() => setGuides(false)} />}
       {f.dialog}
+      {picked && <TitleFiles files={picked} heading={t.school.addFiles} onOk={add} onClose={() => setPicked(null)} />}
     </div>
   );
 }

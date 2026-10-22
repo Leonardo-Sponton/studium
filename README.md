@@ -9,16 +9,10 @@ A study notebook for subjects, handouts, PDFs, study notes, flashcards and schoo
 One app for <b>Linux</b> and <b>Android</b>, 100% offline, with your data kept as plain Markdown files.
 </p>
 
-<p align="center">
-<img src="docs/screenshots/pc-subject-en.png" width="100%" alt="Studium on the Linux desktop: a subject with its handout, PDFs, notes and flashcards">
-</p>
-
-<p align="center">
-<img src="docs/screenshots/phone-today-en.png" width="24%" alt="Today on the phone: today's classes and the review card">
-<img src="docs/screenshots/phone-study-en.png" width="24%" alt="Study tree on the phone">
-<img src="docs/screenshots/phone-notes-en.png" width="24%" alt="A subject's notes on the phone">
-<img src="docs/screenshots/phone-review-en.png" width="24%" alt="Reviewing a flashcard on the phone">
-</p>
+> [!NOTE]
+> **Studium is a study app in development.** It already works on Linux and Android, but
+> screens and file formats may still change. There is no packaged release yet: build it from
+> source (see below).
 
 ## Why
 
@@ -37,7 +31,7 @@ One app for <b>Linux</b> and <b>Android</b>, 100% offline, with your data kept a
 | Area | What it does |
 | --- | --- |
 | **Today** | Today's classes (from the school timetable), flashcards due and the chapter to continue. |
-| **Personal study** | Subjects in an Obsidian-like tree (groups → subjects → sub-subjects), each with "in my own words" (Feynman), materials, PDFs, exercises, links with kinds (docs, video, article…), study notes and a Workbench of practice projects with guides. |
+| **Personal study** | Its own area, opening on a home that shows the subjects as an Obsidian-like tree (groups → subjects → sub-subjects) or as group cards with covers; each with "in my own words" (Feynman), materials, PDFs, exercises, links with kinds (docs, video, article…), study notes and a Workbench of practice projects with guides. |
 | **Materials** | Handouts imported from `.md` files or pasted, read chapter by chapter with read marks and "you stopped here". |
 | **Study notes** | Notes per material, chapter or PDF, with tags, filters and orders; `[[links]]` between notes, materials and subjects, with backlinks. |
 | **Flashcards** | Written inside notes with Obsidian Spaced Repetition marks (`::`, `:::`, `?`, `??`), reviewed with a simplified SM-2 schedule per subject or for everything. |
@@ -56,6 +50,7 @@ Studium/
 ├── study/
 │   ├── _courses/          one file per school course
 │   ├── _groups.md         order of the personal groups
+│   ├── _covers/           cover pictures of the groups
 │   └── <subject>/
 │       ├── subject.md     title, group, parent; the body is "in my own words"
 │       ├── materials/     handouts, read by chapter
@@ -132,7 +127,7 @@ over the cable into `Documents/Studium`.
 
 ## Sample data
 
-To see every screen filled in (the screenshots above were made this way):
+To see every screen filled in:
 
 ```sh
 node tools/sample-data.mjs add ~/StudiumDemo             # English

@@ -327,3 +327,48 @@ describe("project guides", () => {
     expect(guideOf("nope").id).toBe("standard");
   });
 });
+
+import { loadCovers, removeGroupCover, setGroupCover } from "../src/data/study";
+import { loadDocs } from "../src/data/search";
+import { createDrawing, loadDrawing, saveDrawing } from "../src/data/drawings";
+
+describe("titles given when files are added", () => {
+  it("an imported exercise list shows the title given, not its heading", async () => {
+    const notes = new Notes(new MemoryStorage());
+    const s = await createSubject(notes, { title: "SQL" });
+    const dir = s.path.slice(0, s.path.lastIndexOf("/"));
+    const name = await addExerciseFile(notes, dir, "List 3.md", new TextEncoder().encode("# scan_0231\n\n1. SELECT\n"), "List 3 — SELECT");
+    expect(name).toBe("List 3.md");
+    const [subject] = await loadSubjects(notes);
+    expect(subject.exercises.docs.map(d => d.title)).toEqual(["List 3 — SELECT"]);
+  });
+});
+
+describe("group covers", () => {
+  it("are set, replaced, follow a rename and go with the group", async () => {
+    const notes = new Notes(new MemoryStorage());
+    await setGroupCover(notes.storage, "Programação", ".png", new Uint8Array([1]));
+    await setGroupCover(notes.storage, "Programação", ".jpg", new Uint8Array([2]));
+    expect(await loadCovers(notes.storage)).toEqual({ programacao: "study/_covers/programacao.jpg" });
+    await saveGroups(notes, ["Programação"]);
+    await renameGroup(notes, [], ["Programação"], "Programação", "Code");
+    expect(await loadCovers(notes.storage)).toEqual({ code: "study/_covers/code.jpg" });
+    await deleteGroup(notes, [], ["Code"], "Code");
+    expect(await loadCovers(notes.storage)).toEqual({});
+    await removeGroupCover(notes.storage, "Nada");
+    // The covers folder is not a subject.
+    expect(await loadSubjects(notes)).toEqual([]);
+  });
+});
+
+describe("search finds drawings", () => {
+  it("by name and by the words in them, not by their data", async () => {
+    const notes = new Notes(new MemoryStorage());
+    const path = await createDrawing(notes.storage, "Modelo ER");
+    const d = await loadDrawing(notes.storage, path);
+    d.scene.elements.push({ id: "t1", type: "text", text: "Cliente", originalText: "Cliente" } as never);
+    await saveDrawing(notes.storage, path, d);
+    const [doc] = await loadDocs(notes);
+    expect(doc).toMatchObject({ path, title: "Modelo ER", body: "Cliente", drawing: true });
+  });
+});

@@ -2,6 +2,7 @@ import type { Notes } from "./notes";
 import { addDays, isoDate } from "./dates";
 import { areaOf, isHidden, walkFiles } from "./files";
 import { previewOf, titleOf } from "./frontmatter";
+import { drawingText, drawingTitle, isDrawingPath } from "./drawings";
 
 // Global search (SPEC 4.4): a plain scan of every note, ignoring accents and case.
 // Fast enough for thousands of short files; a real index (MiniSearch) only if it ever is not.
@@ -17,6 +18,8 @@ export interface Doc {
   /** folded[i] came from body[map[i]]. */
   map: number[];
   foldedTitle: string;
+  /** An Excalidraw drawing: shown as a picture, opened in the drawing editor. */
+  drawing?: boolean;
 }
 
 export interface Hit {
@@ -54,6 +57,14 @@ export async function loadDocs(notes: Notes): Promise<Doc[]> {
   for (const path of paths) {
     try {
       const n = await notes.load(path);
+      // A drawing is found by its name and the words written in it (the rest is its data).
+      if (isDrawingPath(path)) {
+        const title = drawingTitle(path);
+        const body = drawingText(n.body);
+        const date = String(n.data.modified ?? n.data.created ?? "");
+        docs.push({ path, area: areaOf(path), title, body, date, ...fold(body), foldedTitle: plain(title), drawing: true });
+        continue;
+      }
       // Books keep title and author in the header (SPEC 3.3).
       const title =
         n.data.type === "book" ? [n.data.title, n.data.author].filter(Boolean).join(" · ") : previewOf(n.body);
