@@ -1,0 +1,36 @@
+# Local notes for the coding assistant
+CLAUDE.md
+spikes/
+
+# Dependencies and builds
+node_modules/
+dist/
+release/
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+packaging/arch/src/
+packaging/arch/pkg/
+packaging/arch/*.tar.*
+public/excalidraw/
+
+# Signing keys and local files
+*.apk
+*.aab
+*.keystore
+*.jks
+android/keystore.properties
+android/app/release/
+.env
+.env.*
+*.log
+.vscode/
+.idea/
+.DS_Store
+
+# Data folders and backups
+Studium/
+studium-backup-*.zip

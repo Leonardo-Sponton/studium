@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.leonardo_sponton.studium",
+  "appName": "Studium",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}

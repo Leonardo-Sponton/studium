@@ -1,0 +1,30 @@
+# Arch package made from the Linux build of this repo (`npm run dist` → release/*.tar.gz).
+# Build and install:  cd packaging/arch && makepkg -si
+pkgname=studium
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Offline study app: subjects, handouts, PDFs, notes and flashcards in plain Markdown files"
+arch=('x86_64')
+url="https://github.com/Leonardo-Sponton/studium"
+license=('MIT')
+depends=('gtk3' 'nss' 'alsa-lib')
+options=('!strip' '!debug')
+# The tarball is read straight from release/ (not via source=): makepkg keeps a cached
+# copy of file:// sources and would silently package an old build.
+source=("studium.desktop")
+sha256sums=('SKIP')
+
+prepare() {
+  tar -xzf "${startdir}/../../release/studium-${pkgver}-x64.tar.gz" -C "$srcdir"
+}
+
+package() {
+  install -d "$pkgdir/opt/studium"
+  cp -a "studium-${pkgver}-x64/." "$pkgdir/opt/studium/"
+  install -d "$pkgdir/usr/bin"
+  chmod 4755 "$pkgdir/opt/studium/chrome-sandbox"
+  ln -s /opt/studium/studium "$pkgdir/usr/bin/studium"
+  install -Dm644 studium.desktop "$pkgdir/usr/share/applications/studium.desktop"
+  install -Dm644 "${startdir}/../../resources/icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/studium.png"
+  install -Dm644 "$pkgdir/opt/studium/LICENSE.electron.txt" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.electron.txt"
+}

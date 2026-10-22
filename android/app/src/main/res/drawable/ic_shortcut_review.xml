@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Review cards" shortcut icon: two stacked cards on the accent violet circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#A67CFF"
+        android:pathData="M24,2a22,22 0,1 1,0 44a22,22 0,1 1,0 -44z" />
+    <path
+        android:fillColor="#0B0420"
+        android:pathData="M17,14h18a2,2 0,0 1,2 2v12a2,2 0,0 1,-2 2h-18a2,2 0,0 1,-2 -2v-12a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#0B0420"
+        android:pathData="M13,33h22v2.5h-22z" />
+</vector>

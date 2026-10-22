@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Studium
+Comment=Offline study notes, handouts and flashcards
+Exec=studium %U
+Icon=studium
+Terminal=false
+Type=Application
+Categories=Education;
+StartupWMClass=Studium

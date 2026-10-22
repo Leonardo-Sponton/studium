@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static app shortcuts: shown when the app icon is held on the home screen. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="review"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_review"
+        android:shortcutShortLabel="@string/shortcut_review">
+        <intent
+            android:action="io.github.leonardo_sponton.studium.REVIEW"
+            android:targetPackage="io.github.leonardo_sponton.studium"
+            android:targetClass="io.github.leonardo_sponton.studium.MainActivity" />
+    </shortcut>
+</shortcuts>
