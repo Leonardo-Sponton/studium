@@ -107,9 +107,8 @@ export function SubjectTree(props: Props) {
 
   const roots = rootsOf(props.subjects).sort(byTitle(s => s.title));
   const used = new Set(roots.map(s => s.group));
-  const groups = [...props.groups, ...[...used].filter(g => g && !props.groups.includes(g)).sort((a, b) => a.localeCompare(b)), ...(used.has("") ? [""] : [])];
-  // Only one group, and it is "no group": no folder level at all.
-  const flat = groups.length === 1 && groups[0] === "";
+  // Subjects with no group are rows of their own after the groups, with no "No group" folder.
+  const groups = [...props.groups, ...[...used].filter(g => g && !props.groups.includes(g)).sort((a, b) => a.localeCompare(b))];
 
   const focusRow = (key: string | undefined) => {
     if (!key) return;
@@ -280,9 +279,8 @@ export function SubjectTree(props: Props) {
     });
   };
 
-  const body = flat
-    ? roots.map(s => subjectNode(s, 1, null, new Set()))
-    : groups.map(g => {
+  const body = [
+    ...groups.map(g => {
         const inGroup = roots.filter(s => s.group === g);
         const node: TreeNode = { kind: "group", key: groupKey(g), name: g };
         return row(node, 1, null, {
@@ -290,7 +288,9 @@ export function SubjectTree(props: Props) {
           icon: branches.isOpen(node) ? <FolderOpen size={16} /> : <Folder size={16} />,
           children: inGroup.length ? inGroup.map(s => subjectNode(s, 2, node.key, new Set())) : <li className="muted small tree-empty" role="none">{t.study.groupEmpty}</li>,
         });
-      });
+      }),
+    ...roots.filter(s => !s.group).map(s => subjectNode(s, 1, null, new Set())),
+  ];
 
   // Keep a focusable row: if none matches the roving key, the first row takes Tab.
   useEffect(() => {

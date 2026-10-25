@@ -26,7 +26,7 @@ export function studyItem(subjects: Subject[], path: string): StudyItem | null {
   if (!s) return null;
   // A subject is shown under its parent subject, or its group.
   const parent = s.parent ? subjects.find(x => x.slug === s.parent && !isSchool(x)) : undefined;
-  const home = isSchool(s) ? t.area.school : (parent?.title ?? (s.group || t.study.noGroup));
+  const home = isSchool(s) ? t.area.school : (parent?.title ?? (s.group || t.area.personal));
   if (path === s.path) return { path, title: s.title, icon: <BookOpen size={15} />, where: home, subject: s };
   if (path === `summary:${s.path}`) return { path, title: t.study.summary, icon: <NotebookText size={15} />, where: s.title, subject: s };
   const n = s.notes.find(x => x.path === path);

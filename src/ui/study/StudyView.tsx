@@ -159,7 +159,8 @@ function NewSubject(props: {
   const [kind, setKind] = useState<"hub" | "study">("study");
   const [group, setGroup] = useState(props.group ?? "");
   const [parent, setParent] = useState(props.parent ?? "");
-  const ok = () => title.trim() && props.onOk(title, group, parent, kind);
+  // A group named like the subject itself would only wrap it in a second folder.
+  const ok = () => title.trim() && props.onOk(title, group.trim().toLowerCase() === title.trim().toLowerCase() ? "" : group, parent, kind);
   const enter = (e: React.KeyboardEvent) => e.key === "Enter" && ok();
   return (
     <Dialog title={props.school ? t.school.newSubject : t.study.newSubject} onClose={props.onClose}>
@@ -439,7 +440,7 @@ export function StudyView(props: {
     } else if (pane.kind === "subject") {
       // Up from a personal subject is its group's page.
       const s = subjects.find(x => x.path === pane.path);
-      if (s && !isSchool(s)) setHomeGroup(groupOf(subjects, s));
+      if (s && !isSchool(s)) setHomeGroup(groupOf(subjects, s) || null);
       setPane(null);
     } else if (pane.kind === "course" || pane.kind === "timetable") setPane(null);
     else if (pane.kind === "review") setPane(pane.only ? { kind: "subject", path: pane.only, tab: "cards" } : null);

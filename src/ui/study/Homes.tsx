@@ -65,8 +65,9 @@ export function PersonalHome(props: PersonalProps) {
   useBack(group !== null, () => setGroup(null));
   const covers = useCovers();
   const roots = rootsOf(props.subjects);
-  const ungrouped = roots.some(s => !s.group);
-  const cardGroups = [...props.groups, ...(ungrouped ? [""] : [])];
+  // Subjects with no group sit right on the home, beside the groups (no "No group" folder).
+  const ungrouped = roots.filter(s => !s.group).sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" }));
+  const cardGroups = props.groups;
   /** A root subject with all its sub-subjects. */
   const family = (s: Subject) => {
     const slugs = descendantsOf(props.subjects, s.slug);
@@ -130,23 +131,34 @@ export function PersonalHome(props: PersonalProps) {
             <p className="muted home-tree-hint">{t.explorer.homeHint(shortcutLabel("open"))}</p>
           </>
         ) : (
-          <ul className="group-grid">
-            {cardGroups.map(g => {
-              return (
-                <li key={g || "-"}>
-                  <button className="group-card" onClick={() => setGroup(g)}>
-                    <Cover url={coverOf(covers, g)} name={g || t.study.noGroup} className="group-cover" />
-                    <span className="group-card-body">
-                      <span className="list-title">{g || t.study.noGroup}</span>
-                      <span className="list-meta">
-                        {t.study.subjectsIn(inGroup(g).length)}
+          <>
+            <ul className="group-grid">
+              {cardGroups.map(g => {
+                return (
+                  <li key={g || "-"}>
+                    <button className="group-card" onClick={() => setGroup(g)}>
+                      <Cover url={coverOf(covers, g)} name={g || t.study.noGroup} className="group-cover" />
+                      <span className="group-card-body">
+                        <span className="list-title">{g || t.study.noGroup}</span>
+                        <span className="list-meta">
+                          {t.study.subjectsIn(inGroup(g).length)}
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            {ungrouped.length > 0 && (
+              <ul className="subject-grid">
+                {ungrouped.map(s => (
+                  <li key={s.path}>
+                    <SubjectCard s={s} kids={childrenOf(props.subjects, s.slug)} due={dueCards(family(s)).length} onOpen={props.onSubject} onMenu={props.onMenu} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </div>
     </div>
