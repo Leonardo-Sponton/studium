@@ -77,7 +77,6 @@ export function MaterialReader(props: Props) {
   const text = around.current.text;
   const change = (s: string) => f.setBody(around.current.before + s + around.current.after);
 
-  const read = m.done.filter(n => chapters.some(c => c.n === n)).length;
   const link = m.url ? webLink(m.url) : null;
   const last = m.at !== null ? chapters.find(c => c.n === m.at) : undefined;
 
@@ -112,12 +111,6 @@ export function MaterialReader(props: Props) {
                 )}
               </div>
             </div>
-            {chapters.length > 0 && (
-              <div className="stack" style={{ gap: 6 }}>
-                <Progress read={read} total={chapters.length} />
-                <span className="muted small">{t.study.chaptersRead(read, chapters.length)}</span>
-              </div>
-            )}
             {last && (
               <button className="btn primary continue-btn" onClick={() => open(last.n)}>
                 <ChevronRight size={18} /> {t.study.continueAt(chapterName(last))}
@@ -155,6 +148,9 @@ export function MaterialReader(props: Props) {
   return (
     <div className="note-editor reader">
       <div className="note-bar">
+        <button className="btn ghost icon" onClick={props.onBack} aria-label={t.common.back} title={t.common.back}>
+          <ArrowLeft size={20} />
+        </button>
         <button className="btn ghost icon" onClick={close} aria-label={t.study.contents} title={t.study.contents}>
           <List size={20} />
         </button>
@@ -196,7 +192,7 @@ export function MaterialReader(props: Props) {
           <button className="btn ghost icon" disabled={idx <= 0} aria-label={t.common.previous} onClick={() => open(chapters[idx - 1].n)}>
             <ChevronLeft size={20} />
           </button>
-          <span className="mono small muted">{t.study.progressOf(idx + 1, chapters.length)}</span>
+          <span className="small muted one-line reader-foot-ch">{chapterName(ch)}</span>
           {isRead(ch.n) ? (
             <button className="btn ghost" onClick={() => toggle(ch.n, false)}>
               <Check size={16} /> {t.study.read}

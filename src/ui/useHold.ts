@@ -22,8 +22,8 @@ function blockSelectionUntilLift() {
   setTimeout(done, 3000); // never left on by a lost pointerup
 }
 
-/** `onMenu` gets the held element (to place a popup next to it). */
-export function useHold(onMenu: (el: HTMLElement) => void) {
+/** `onMenu` gets the held element (to place a popup next to it) and where the pointer was. */
+export function useHold(onMenu: (el: HTMLElement, at: { x: number; y: number }) => void) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const start = useRef<{ x: number; y: number } | null>(null);
   const ate = useRef(false);
@@ -38,12 +38,13 @@ export function useHold(onMenu: (el: HTMLElement) => void) {
         if (e.pointerType !== "touch") return;
         start.current = { x: e.clientX, y: e.clientY };
         const el = e.currentTarget as HTMLElement;
+        const at = { x: e.clientX, y: e.clientY };
         stop();
         timer.current = setTimeout(() => {
           ate.current = true;
           navigator.vibrate?.(20);
           blockSelectionUntilLift();
-          onMenu(el);
+          onMenu(el, at);
         }, HOLD);
       },
       onPointerMove: (e: React.PointerEvent) => {
@@ -55,7 +56,7 @@ export function useHold(onMenu: (el: HTMLElement) => void) {
       onContextMenu: (e: React.MouseEvent) => {
         e.preventDefault();
         stop();
-        onMenu(e.currentTarget as HTMLElement);
+        onMenu(e.currentTarget as HTMLElement, { x: e.clientX, y: e.clientY });
       },
     },
   };

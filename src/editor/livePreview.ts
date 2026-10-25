@@ -5,6 +5,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { tags } from "@lezer/highlight";
 import { DRAWING_NAME, DrawingWidget, FILE_EXT, EmbedChipWidget, embedTarget, IMAGE_EXT, ImageWidget, NoteEmbedWidget } from "./embeds";
 import { cachedDiagram, drawDiagram, escapeHTML, mathHTML } from "./render";
+import { t } from "../i18n";
 export { Highlight } from "./syntax";
 
 // Live preview like Obsidian's (SPEC 4.3): Markdown is shown formatted and its symbols (#, **, >,
@@ -71,6 +72,44 @@ class TextWidget extends WidgetType {
     el.className = this.cls;
     el.textContent = this.text;
     return el;
+  }
+}
+
+/** The top of a code block while the caret is outside it: its language and a Copy button. */
+class CodeHeadWidget extends WidgetType {
+  constructor(
+    /** The language, shown. */
+    readonly text: string,
+    readonly code: string,
+  ) {
+    super();
+  }
+  eq(other: CodeHeadWidget) {
+    return other.text === this.text && other.code === this.code;
+  }
+  toDOM() {
+    const el = document.createElement("span");
+    el.className = "cm-hm-cb-lang";
+    el.textContent = this.text;
+    const copy = el.appendChild(document.createElement("button"));
+    copy.type = "button";
+    copy.className = "cm-hm-cb-copy";
+    copy.textContent = t.editor.copyCode;
+    copy.title = t.editor.copyCodeHint;
+    // The click copies; it must not move the caret into the block (that shows its source).
+    copy.onmousedown = e => e.preventDefault();
+    copy.onclick = () =>
+      navigator.clipboard.writeText(this.code).then(
+        () => {
+          copy.textContent = t.editor.copied;
+          setTimeout(() => (copy.textContent = t.editor.copyCode), 1500);
+        },
+        () => (copy.textContent = t.editor.copyFailed),
+      );
+    return el;
+  }
+  ignoreEvent() {
+    return true;
   }
 }
 
@@ -358,7 +397,7 @@ function caretLines(view: EditorView): Set<number> {
 }
 
 export const CALLOUT = /^\[!([A-Za-z-]+)\][+-]?/;
-export const CALLOUT_ICON: Record<string, string> = { note: "ℹ", tip: "✦", warn: "⚠", danger: "✖", example: "☰", quote: "❝" };
+export const CALLOUT_ICON: Record<string, string> = { note: "ℹ", tip: "✦", warn: "⚠", danger: "✖", example: "☰", quote: "❝", hard: "🧩" };
 
 /** "> [!tip]-": the callout's icon, its name when it has no title, and the fold arrow. */
 class CalloutHeadWidget extends WidgetType {
@@ -398,6 +437,9 @@ export const CALLOUT_KIND: Record<string, string> = {
   question: "warn", help: "warn", faq: "warn", warning: "warn", caution: "warn", attention: "warn",
   danger: "danger", error: "danger", bug: "danger", failure: "danger", fail: "danger", missing: "danger",
   example: "example", quote: "quote", cite: "quote",
+  // Review points (data/recall), English and Portuguese types.
+  difficulty: "hard", dificuldade: "hard", concept: "example", conceito: "example", definition: "example",
+  atencao: "warn", importante: "tip", dica: "tip", resumo: "note", obs: "note",
 };
 
 /** "https://…", "mailto:…" or "www.…" — what a click may open. */
@@ -659,7 +701,8 @@ export function buildDecorations(state: EditorState, ranges: readonly { from: nu
             if (!rawBlock) {
               // The fences give way to a small label with the language.
               const lang = /^\s*(?:`{3,}|~{3,})\s*([^\s`]*)/.exec(first.text)?.[1] ?? "";
-              decos.push(Decoration.replace({ widget: new TextWidget(lang, "cm-hm-cb-lang") }).range(first.from, first.to));
+              const code = first.number < last.number ? doc.sliceString(first.to + 1, closed ? last.from - 1 : last.to) : "";
+              decos.push(Decoration.replace({ widget: new CodeHeadWidget(lang, code) }).range(first.from, first.to));
               if (closed && last.to > last.from) decos.push(hide.range(last.from, last.to));
             }
             return false;

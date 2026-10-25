@@ -209,7 +209,7 @@ function linkSpec(state: EditorState): TransactionSpec {
  * A block (a line across, a table) goes after the caret's line, with an empty line before it:
  * a "---" right under text would turn that text into a subtitle instead.
  */
-function blockSpec(state: EditorState, block: string): TransactionSpec {
+export function blockSpec(state: EditorState, block: string): TransactionSpec {
   const line = state.doc.lineAt(state.selection.main.head);
   const prev = line.number > 1 ? state.doc.line(line.number - 1).text : "";
   const before = line.text.trim() ? "\n\n" : prev.trim() ? "\n" : "";

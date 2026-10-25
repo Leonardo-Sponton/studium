@@ -1,9 +1,8 @@
-import { useRef } from "react";
-import { ArrowLeft, CalendarDays, ClipboardCheck, FileCheck2, FolderTree, ImageMinus, ImagePlus, LayoutGrid, Layers, List, Plus, Settings2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, CalendarDays, ClipboardCheck, Crop, FileCheck2, FolderTree, ImageMinus, ImagePlus, LayoutGrid, Layers, List, Plus, Settings2 } from "lucide-react";
 import { isoDate } from "../../data/dates";
 import { average, type Course } from "../../data/school";
 import {
-  cardCount,
   childrenOf,
   coverOf,
   descendantsOf,
@@ -11,17 +10,18 @@ import {
   removeGroupCover,
   rootsOf,
   setGroupCover,
-  subjectProgress,
+  setGroupCoverFrame,
   type Subject,
 } from "../../data/study";
+import { todayPicks, type Pick } from "../../data/notebook";
+import { TodayPicks } from "./Notebook";
 import { useApp } from "../context";
 import { useBack } from "../useBack";
 import { useHold } from "../useHold";
 import { ClassesToday } from "./School";
-import { Cover, coverData, useCovers } from "./Covers";
-import { Progress } from "./MaterialReader";
-import { relativeDay } from "./SubjectPage";
-import { SubjectTree } from "./SubjectTree";
+import { Cover, CoverAdjust, coverData, useCovers, useImage } from "./Covers";
+import { relativeDay, stoppedAt } from "./SubjectPage";
+import { shortcutLabel } from "../shortcuts";
 import { usePref } from "./prefs";
 import { dateLabel, gradeText } from "./school-ui";
 import { t } from "../../i18n";
@@ -42,12 +42,15 @@ interface PersonalProps {
   /** Every group in its order (Groups), including the ones with no subject yet. */
   groups: string[];
   onSubject(s: Subject): void;
-  onMenu(s: Subject): void;
-  onOpen(path: string): void;
+  onMenu(s: Subject, at: { x: number; y: number }): void;
+  /** The tree (ui/study/SubjectTree), shown in the list view. */
+  tree: ReactNode;
   /** New subject, inside a group when one is open. */
   onNew(group: string): void;
   onGroups(): void;
   onReview(): void;
+  /** One of the suggestions for today (ui/study/Notebook). */
+  onPick(p: Pick): void;
   /** The group whose page is open (cards view), kept by Study so back from a subject lands there. */
   group: string | null;
   onGroup(g: string | null): void;
@@ -111,23 +114,24 @@ export function PersonalHome(props: PersonalProps) {
             </button>
           </div>
         </div>
+        <TodayPicks picks={todayPicks(props.subjects)} onPick={props.onPick} showSubject />
         {due > 0 && (
-          <button className="today-card review-all" style={{ marginTop: 0 }} onClick={props.onReview}>
-            <Layers size={18} />
-            <span>{t.study.reviewAll(due)}</span>
+          <button className="subj-review-quiet" onClick={props.onReview}>
+            <Layers size={16} />
+            <span>{t.study.reviewWhenever(due)}</span>
           </button>
         )}
         {props.subjects.length === 0 && props.groups.length === 0 ? (
           <p className="muted">{t.study.empty}</p>
         ) : view === "list" ? (
-          <div className="home-tree">
-            <SubjectTree subjects={props.subjects} groups={props.groups} onSubject={props.onSubject} onMenu={props.onMenu} onOpen={props.onOpen} />
-          </div>
+          <>
+            {/* Beside the side panel (wide screens) the same tree would show twice: a hint instead. */}
+            <div className="home-tree">{props.tree}</div>
+            <p className="muted home-tree-hint">{t.explorer.homeHint(shortcutLabel("open"))}</p>
+          </>
         ) : (
           <ul className="group-grid">
             {cardGroups.map(g => {
-              const subs = inGroup(g).flatMap(family);
-              const dueHere = dueCards(subs).length;
               return (
                 <li key={g || "-"}>
                   <button className="group-card" onClick={() => setGroup(g)}>
@@ -135,7 +139,7 @@ export function PersonalHome(props: PersonalProps) {
                     <span className="group-card-body">
                       <span className="list-title">{g || t.study.noGroup}</span>
                       <span className="list-meta">
-                        {[t.study.subjectsIn(inGroup(g).length), dueHere ? t.study.due(dueHere) : ""].filter(Boolean).join(" · ")}
+                        {t.study.subjectsIn(inGroup(g).length)}
                       </span>
                     </span>
                   </button>
@@ -157,11 +161,13 @@ function GroupPage(props: {
   family(s: Subject): Subject[];
   onBack(): void;
   onSubject(s: Subject): void;
-  onMenu(s: Subject): void;
+  onMenu(s: Subject, at: { x: number; y: number }): void;
   onNew(): void;
 }) {
   const { notes, bump, toast } = useApp();
   const input = useRef<HTMLInputElement>(null);
+  // Open right after a new picture is picked, so it can be framed at once.
+  const [adjust, setAdjust] = useState(false);
   const fail = (e: unknown) => toast({ text: e instanceof Error ? e.message : String(e), error: true });
   const pick = async (list: FileList | null) => {
     const file = list?.[0];
@@ -170,12 +176,17 @@ function GroupPage(props: {
     try {
       const c = await coverData(file);
       await setGroupCover(notes.storage, props.name, c.ext, c.data);
+      await setGroupCoverFrame(notes, props.name, null);
       bump();
+      setAdjust(true);
     } catch (e) {
       fail(e);
     }
   };
-  const removeCover = () => removeGroupCover(notes.storage, props.name).then(bump, fail);
+  const removeCover = () =>
+    removeGroupCover(notes.storage, props.name)
+      .then(() => setGroupCoverFrame(notes, props.name, null))
+      .then(bump, fail);
   const title = props.name || t.study.noGroup;
   return (
     <div className="page study-home">
@@ -187,6 +198,18 @@ function GroupPage(props: {
           </button>
           <h1>{title}</h1>
         </div>
+        {adjust && props.cover && (
+          <CoverAdjust
+            url={props.cover}
+            banner=".group-banner"
+            card={16 / 9}
+            onClose={() => setAdjust(false)}
+            onSave={f => {
+              setAdjust(false);
+              setGroupCoverFrame(notes, props.name, f).then(bump, fail);
+            }}
+          />
+        )}
         <div className="row home-actions" style={{ justifyContent: "flex-end" }}>
           {props.name && (
             <>
@@ -195,9 +218,14 @@ function GroupPage(props: {
                 <ImagePlus size={16} /> {props.cover ? t.study.changeCover : t.study.addCover}
               </button>
               {props.cover && (
-                <button className="btn ghost" onClick={removeCover}>
-                  <ImageMinus size={16} /> {t.study.removeCover}
-                </button>
+                <>
+                  <button className="btn ghost" onClick={() => setAdjust(true)}>
+                    <Crop size={16} /> {t.study.adjustCover}
+                  </button>
+                  <button className="btn ghost" onClick={removeCover}>
+                    <ImageMinus size={16} /> {t.study.removeCover}
+                  </button>
+                </>
               )}
             </>
           )}
@@ -221,29 +249,20 @@ function GroupPage(props: {
   );
 }
 
-function SubjectCard(props: { s: Subject; kids: Subject[]; due: number; onOpen(s: Subject): void; onMenu(s: Subject): void }) {
+function SubjectCard(props: { s: Subject; kids: Subject[]; due: number; onOpen(s: Subject): void; onMenu(s: Subject, at: { x: number; y: number }): void }) {
   const { s } = props;
-  const hold = useHold(() => props.onMenu(s));
-  const p = subjectProgress(s);
-  const cards = cardCount(s);
+  const hold = useHold((_, at) => props.onMenu(s, at));
+  const at = stoppedAt(s);
   const notes = s.notes.filter(n => n.kind !== "cards").length;
+  const cover = useImage(s.cover, s.coverFrame);
   return (
     <div className="subject-card" {...hold.handlers}>
       <button className="subject-card-main" onClick={() => !hold.eaten() && props.onOpen(s)}>
+        {cover && <Cover url={cover} name={s.title} className="subj-kid-pic" />}
         <span className="list-title">{s.title}</span>
-        {p.total > 0 && (
-          <span className="row" style={{ gap: 8 }}>
-            <Progress read={p.read} total={p.total} />
-            <span className="list-meta mono">{t.study.progressOf(p.read, p.total)}</span>
-          </span>
-        )}
+        {at && <span className="list-meta">{t.study.stoppedAt(at)}</span>}
         <span className="list-meta">
-          {[
-            s.materials.length ? t.study.materialsCount(s.materials.length) : "",
-            notes ? t.study.notesCount(notes) : "",
-            cards ? t.study.cards(cards) : "",
-            props.due ? t.study.due(props.due) : "",
-          ]
+          {[s.materials.length ? t.study.materialsCount(s.materials.length) : "", notes ? t.study.notesCount(notes) : ""]
             .filter(Boolean)
             .join(" · ")}
         </span>
@@ -339,7 +358,7 @@ interface SchoolProps {
   onNewCourse(): void;
   onNewSubject(): void;
   onSubject(s: Subject): void;
-  onMenu(s: Subject): void;
+  onMenu(s: Subject, at: { x: number; y: number }): void;
   onAssignment(path: string): void;
   onExam(path: string): void;
   onReview(): void;
@@ -448,9 +467,9 @@ export function SchoolHome(props: SchoolProps) {
   );
 }
 
-function SchoolCard(props: { s: Subject; onOpen(s: Subject): void; onMenu(s: Subject): void }) {
+function SchoolCard(props: { s: Subject; onOpen(s: Subject): void; onMenu(s: Subject, at: { x: number; y: number }): void }) {
   const { s } = props;
-  const hold = useHold(() => props.onMenu(s));
+  const hold = useHold((_, at) => props.onMenu(s, at));
   const meta = schoolMeta(s);
   return (
     <div className="subject-card" {...hold.handlers}>

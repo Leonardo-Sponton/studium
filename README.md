@@ -32,6 +32,7 @@ One app for <b>Linux</b> and <b>Android</b>, 100% offline, with your data kept a
 | --- | --- |
 | **Today** | Today's classes (from the school timetable), flashcards due and the chapter to continue. |
 | **Personal study** | Its own area, opening on a home that shows the subjects as an Obsidian-like tree (groups → subjects → sub-subjects) or as group cards with covers; each with "in my own words" (Feynman), materials, PDFs, exercises, links with kinds (docs, video, article…), study notes and a Workbench of practice projects with guides. |
+| **Navigation** | A side panel that stays beside what is open: pinned items, recent ones and the tree, where notes and subjects are renamed in place (F2), moved (menu or drag), duplicated, pinned or deleted, with `[[links]]` updated on rename. Back and forward (Ctrl+Alt+← / →, mouse side buttons), a command palette (Ctrl+P) that shows every shortcut, and the full list on F1. See [docs/UX.md](docs/UX.md). |
 | **Materials** | Handouts imported from `.md` files or pasted, read chapter by chapter with read marks and "you stopped here". |
 | **Study notes** | Notes per material, chapter or PDF, with tags, filters and orders; `[[links]]` between notes, materials and subjects, with backlinks. |
 | **Flashcards** | Written inside notes with Obsidian Spaced Repetition marks (`::`, `:::`, `?`, `??`), reviewed with a simplified SM-2 schedule per subject or for everything. |

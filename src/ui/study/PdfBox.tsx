@@ -11,7 +11,7 @@ import { t } from "../../i18n";
 
 const sizeText = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
-export function PdfBox(props: { subject: Subject; onNote(pdf: string): void }) {
+export function PdfBox(props: { subject: Subject; onNote(pdf: string): void; heading?: React.ReactNode }) {
   const { notes, platform, bump, toast, confirmDelete } = useApp();
   const s = props.subject;
   const input = useRef<HTMLInputElement>(null);
@@ -47,7 +47,8 @@ export function PdfBox(props: { subject: Subject; onNote(pdf: string): void }) {
 
   return (
     <>
-      <div className="task-notes-head row" style={{ justifyContent: "flex-end" }}>
+      <div className={props.heading ? "subj-sub-head" : "task-notes-head row"} style={{ justifyContent: props.heading ? "space-between" : "flex-end" }}>
+        {props.heading}
         <input ref={input} type="file" accept="application/pdf,.pdf" multiple hidden onChange={e => pick(e.target.files)} />
         <button className="btn ghost" onClick={() => input.current?.click()}>
           <FileUp size={16} /> {t.study.addPdf}

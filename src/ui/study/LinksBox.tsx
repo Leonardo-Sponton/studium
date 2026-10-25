@@ -28,7 +28,7 @@ const hostOf = (url: string) => {
   }
 };
 
-export function LinksBox(props: { dir: string; links: StudyLink[]; heading?: boolean | string; empty?: string }) {
+export function LinksBox(props: { dir: string; links: StudyLink[]; heading?: boolean | string | React.ReactNode; empty?: string }) {
   const { notes, platform, bump, toast, confirmDelete } = useApp();
   const s = props;
   const [edit, setEdit] = useState<{ i: number | null } | null>(null);
@@ -58,8 +58,8 @@ export function LinksBox(props: { dir: string; links: StudyLink[]; heading?: boo
 
   return (
     <>
-      <div className="task-notes-head row" style={{ justifyContent: "space-between" }}>
-        {props.heading === false ? <span /> : typeof props.heading === "string" ? <h3>{props.heading}</h3> : <h2>{t.study.links}</h2>}
+      <div className={typeof props.heading === "object" ? "subj-sub-head" : "task-notes-head row"} style={{ justifyContent: "space-between" }}>
+        {props.heading === false ? <span /> : typeof props.heading === "string" ? <h3>{props.heading}</h3> : props.heading === undefined || props.heading === true ? <h2>{t.study.links}</h2> : props.heading}
         <button className="btn ghost" onClick={() => setEdit({ i: null })}>
           <Plus size={16} /> {t.study.addLink}
         </button>

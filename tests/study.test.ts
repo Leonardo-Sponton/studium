@@ -328,7 +328,7 @@ describe("project guides", () => {
   });
 });
 
-import { loadCovers, removeGroupCover, setGroupCover } from "../src/data/study";
+import { frameOf, frameText, loadCovers, loadGroupFrames, removeGroupCover, setGroupCover, setGroupCoverFrame, setSubjectCoverFrame } from "../src/data/study";
 import { loadDocs } from "../src/data/search";
 import { createDrawing, loadDrawing, saveDrawing } from "../src/data/drawings";
 
@@ -358,6 +358,36 @@ describe("group covers", () => {
     await removeGroupCover(notes.storage, "Nada");
     // The covers folder is not a subject.
     expect(await loadSubjects(notes)).toEqual([]);
+  });
+});
+
+describe("cover framing", () => {
+  it("is read and written as \"x y zoom\", kept in range, centered = nothing", () => {
+    expect(frameOf("20 75.5 1.4")).toEqual({ x: 20, y: 75.5, zoom: 1.4 });
+    expect(frameOf("-5 150 9")).toEqual({ x: 0, y: 100, zoom: 4 });
+    expect(frameOf("abc")).toBeNull();
+    expect(frameOf(undefined)).toBeNull();
+    expect(frameText({ x: 33.333, y: 10, zoom: 1.2345 })).toBe("33.3 10 1.23");
+    expect(frameText({ x: 50, y: 50, zoom: 1 })).toBe("");
+  });
+
+  it("of a subject sits in its header; of a group in _groups.md, following a rename", async () => {
+    const notes = new Notes(new MemoryStorage());
+    const s = await createSubject(notes, { title: "Java" });
+    await setSubjectCoverFrame(notes, s.path, { x: 30, y: 60, zoom: 2 });
+    expect((await loadSubjects(notes))[0].coverFrame).toBe("30 60 2");
+    await setSubjectCoverFrame(notes, s.path, null);
+    expect((await loadSubjects(notes))[0].coverFrame).toBe("");
+
+    await saveGroups(notes, ["Programação"]);
+    await setGroupCover(notes.storage, "Programação", ".jpg", new Uint8Array([1]));
+    await setGroupCoverFrame(notes, "Programação", { x: 10, y: 20, zoom: 1.5 });
+    expect(await loadGroupFrames(notes)).toEqual({ programacao: "10 20 1.5" });
+    expect(await loadGroups(notes)).toEqual(["Programação"]); // the order is kept
+    await renameGroup(notes, [], ["Programação"], "Programação", "Code");
+    expect(await loadGroupFrames(notes)).toEqual({ code: "10 20 1.5" });
+    await deleteGroup(notes, [], ["Code"], "Code");
+    expect(await loadGroupFrames(notes)).toEqual({});
   });
 });
 

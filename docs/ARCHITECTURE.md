@@ -13,12 +13,17 @@ src/
 ├── platform/           Electron bridge, Android plugin bridge, in-memory test platform
 ├── storage/            the Storage interface every platform implements
 ├── data/               plain TypeScript, no React: files, frontmatter, study, school, cards (SM-2),
-│                       guides, search, trash, backup, sync, settings, appearance, drawings
+│                       guides, search, trash, backup, sync, settings, appearance, drawings,
+│                       organize (rename/move/duplicate/pin from the tree, [[link]] rewriting),
+│                       notebook (numbered notes as chapters, folder import, today's picks),
+│                       recall (sections, review points, whole-note review) — see docs/LEARNING.md
 ├── editor/             CodeMirror 6: live preview, [[links]], tables, "/" menu, render (KaTeX, Mermaid)
 ├── i18n/               en and pt-BR dictionaries (pt must have every key en has; tests check it)
 └── ui/
     ├── Shell.tsx       areas: Today, Study, Search, Trash, Sync, Settings (bottom bar on phones)
     ├── App.tsx         boot, settings, toasts, delete confirmation, drawing editor
+    ├── shortcuts.ts    every app shortcut in one table (the Shell listens, menus and F1 show them)
+    ├── history.ts      back/forward through the session
     └── study/          the study screens: Personal study and School are areas of their own, each
                         opening on a home (Homes.tsx); tree, subject page, reader, notes, cards,
                         school, workbench

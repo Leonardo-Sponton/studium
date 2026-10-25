@@ -62,6 +62,16 @@ describe("live preview", () => {
     expect(r.lineCls[3]).toEqual(["cm-hm-codeblock cm-hm-cb-last"]);
   });
 
+  it("gives a code block's Copy button the code alone, as written", () => {
+    const doc = "Text\n```java\nif (a) {\n\tb();\n}\n```\nafter";
+    const codes: string[] = [];
+    buildDecorations(stateOf(doc), [{ from: 0, to: doc.length }], new Set()).between(0, doc.length, (_f, _t, d) => {
+      const w = (d.spec as { widget?: { code?: string } }).widget;
+      if (w?.code !== undefined) codes.push(w.code);
+    });
+    expect(codes).toEqual(["if (a) {\n\tb();\n}"]);
+  });
+
   it("shows the fences while the caret is anywhere in the code block", () => {
     expect(render("```java\nint a;\n```", [2]).text).toBe("```java\nint a;\n```");
   });

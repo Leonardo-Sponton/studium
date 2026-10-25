@@ -30,18 +30,20 @@ import { t, word } from "../../i18n";
 const DRAWIO_NEW = "https://app.diagrams.net/";
 
 /** The workbench section of a subject page. */
-export function WorkbenchBox(props: { subject: Subject; onOpen(path: string): void; onNew(): void }) {
+export function WorkbenchBox(props: { subject: Subject; onOpen(path: string): void; onNew(): void; head?: boolean }) {
   const list = props.subject.workbench;
   return (
     <section className="workbench stack">
-      <div className="task-notes-head row" style={{ justifyContent: "space-between" }}>
-        <h2>
-          <Hammer size={18} className="muted" /> {t.study.workbench}
-        </h2>
-        <button className="btn ghost" onClick={props.onNew}>
-          <Plus size={16} /> {t.study.newProject}
-        </button>
-      </div>
+      {props.head !== false && (
+        <div className="task-notes-head row" style={{ justifyContent: "space-between" }}>
+          <h2>
+            <Hammer size={18} className="muted" /> {t.study.workbench}
+          </h2>
+          <button className="btn ghost" onClick={props.onNew}>
+            <Plus size={16} /> {t.study.newProject}
+          </button>
+        </div>
+      )}
       {list.length === 0 ? (
         <p className="muted small">{t.study.noProjects}</p>
       ) : (

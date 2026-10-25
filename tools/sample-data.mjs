@@ -220,7 +220,7 @@ function samples(lang = "en") {
     T("Java compiles to bytecode that runs on the JVM. Classes describe objects; interfaces describe what an object can do.\n",
       "Java compila para bytecode, que roda na JVM. Classes descrevem objetos; interfaces descrevem o que um objeto sabe fazer.\n"));
   studyFile("sample-jdbc/subject.md", at(-10, 20, 0), at(-3, 21, 20),
-    { type: "subject", title: "JDBC", parent: "sample-java" }, "");
+    { type: "subject", title: "JDBC", parent: "sample-java", notebook_at: "01-transacoes" }, "");
   studyFile(`sample-jdbc/notes/${stamp(at(-3, 21, 0))}.md`, at(-3, 21, 0), at(-3, 21, 20),
     { type: "study-note" },
     T("# JDBC queries\n\nOpen a `Connection`, prepare the SQL, run it, read the `ResultSet`. The SQL itself is in [[JOIN]] and [[SELECT and WHERE]].\n\n```java\ntry (var ps = conn.prepareStatement(\"SELECT name FROM customers WHERE city = ?\")) {\n  ps.setString(1, \"Recife\");\n  var rs = ps.executeQuery();\n}\n```\n\nWhy use PreparedStatement instead of joining strings? :: It stops SQL injection and lets the database reuse the plan\nWhat does try-with-resources do with the statement? :: Closes it at the end, even after an error\n",
@@ -237,6 +237,17 @@ function samples(lang = "en") {
   // PDFs, a standalone note and workbench projects (fixed names: added even when Study already
   // has samples).
   const fixedStudy = (rel, ...rest) => (studyFile(rel, ...rest), fixed.add(`study/${rel}`));
+
+  // My notebook (data/notebook): numbered notes are chapters; callouts are review points; an
+  // empty one is "still to write". Where it stopped is notebook_at in subject.md (patched below).
+  fixedStudy("sample-jdbc/notes/00-conexao.md", at(-8, 20, 0), at(-8, 20, 40), { type: "study-note" },
+    T("# 00. Connecting\n\nA `Connection` is a session with the database. `DriverManager.getConnection(url, user, password)` opens one.\n\n## The JDBC URL\n\n`jdbc:postgresql://localhost:5432/bookstore`: protocol, driver, host, port, database.\n\n> **Concept**\n>\n> The driver is the library that speaks the database's protocol; JDBC is the same interface for all of them.\n\n## Closing\n\n```java\ntry (Connection conn = DriverManager.getConnection(url, user, pass)) {\n  // use it\n}\n```\n\n> **Dificuldade**\n>\n> I did not get why the connection must be closed if the program ends anyway: on a server the program does not end, and every open connection holds memory and a slot in the database.\n",
+      "# 00. Conexão\n\nUma `Connection` é uma sessão com o banco. `DriverManager.getConnection(url, usuario, senha)` abre uma.\n\n## A URL JDBC\n\n`jdbc:postgresql://localhost:5432/livraria`: protocolo, driver, máquina, porta, banco.\n\n> **Conceito**\n>\n> O driver é a biblioteca que fala o protocolo do banco; o JDBC é a mesma interface para todos.\n\n## Fechando\n\n```java\ntry (Connection conn = DriverManager.getConnection(url, usuario, senha)) {\n  // usa\n}\n```\n\n> **Dificuldade**\n>\n> Não entendia por que fechar a conexão se o programa termina mesmo: num servidor o programa não termina, e cada conexão aberta ocupa memória e uma vaga no banco.\n"));
+  fixedStudy("sample-jdbc/notes/01-transacoes.md", at(-5, 20, 0), at(-5, 21, 0), { type: "study-note" },
+    T("# 01. Transactions\n\nA transaction is a group of commands the database treats as one: all are confirmed or none.\n\n## autoCommit\n\nBy default each statement is its own transaction (`autoCommit = true`). Turn it off to group them, then `commit()` or `rollback()`.\n\n> **Atenção**\n>\n> Every statement of the transaction must use the **same** `Connection`.\n\n## Resumindo\n\n| Call | What it does |\n| --- | --- |\n| `setAutoCommit(false)` | starts grouping |\n| `commit()` | confirms all |\n| `rollback()` | undoes all |\n",
+      "# 01. Transações\n\nUma transação é um grupo de comandos que o banco trata como um só: ou todos são confirmados, ou nenhum.\n\n## autoCommit\n\nPor padrão cada comando é uma transação isolada (`autoCommit = true`). Desligue para agrupar, depois `commit()` ou `rollback()`.\n\n> **Atenção**\n>\n> Todos os comandos da transação precisam usar a **mesma** `Connection`.\n\n## Resumindo\n\n| Chamada | O que faz |\n| --- | --- |\n| `setAutoCommit(false)` | começa a agrupar |\n| `commit()` | confirma tudo |\n| `rollback()` | desfaz tudo |\n"));
+  fixedStudy("sample-jdbc/notes/02-pool.md", at(-5, 21, 5), at(-5, 21, 5), { type: "study-note" },
+    T("# 02. Connection pool (HikariCP)\n", "# 02. Pool de conexões (HikariCP)\n"));
   const sqlPdf = T("SQL cheat sheet.pdf", "Guia rápido de SQL.pdf");
   binaries.push([`study/sql-basics/pdfs/${sqlPdf}`, tinyPdf(T("SQL cheat sheet", "Guia rapido de SQL"), T(
     ["SELECT columns FROM table WHERE condition", "INNER JOIN: rows with a match on both sides", "LEFT JOIN: every row of the left table", "GROUP BY + COUNT, SUM, AVG"],

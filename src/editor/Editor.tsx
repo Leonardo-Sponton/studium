@@ -21,7 +21,8 @@ import { advancedTables, caretInTable } from "./tables";
 import { keepSpot, markOpened, recallSpot } from "./memory";
 import { findAttachment, imageURL, saveAttachment } from "../data/attachments";
 import { formatDate } from "../data/templates";
-import { CARET, type Format } from "./format";
+import { blockSpec, CARET, type Format } from "./format";
+import { POINT_CALLOUTS, POINT_KINDS } from "../data/recall";
 import { t } from "../i18n";
 
 // The Markdown text area used everywhere (SPEC 4.3). It owns its text while mounted:
@@ -208,6 +209,19 @@ export function Editor({ text, onChange, onSaveNow, placeholder, autoFocus, comm
             },
           };
         });
+      // Review points (data/recall): "> [!warning] Atenção" and the caret on the line below.
+      // Right after the callout, so "/ponto" or "/atenção" finds them.
+      const points: SlashItem[] = POINT_KINDS.map(k => ({
+        id: `point-${k}`,
+        label: t.editor.point(t.recall.kinds[k]),
+        keywords: `${t.editor.pointWords} ${t.recall.kinds[k]} ${POINT_CALLOUTS[k]}`,
+        detail: `[!${POINT_CALLOUTS[k]}]`,
+        run: (v: EditorView) => {
+          v.dispatch({ ...blockSpec(v.state, `> [!${POINT_CALLOUTS[k]}] ${t.recall.kinds[k]}\n> ${CARET}\n`), scrollIntoView: true, userEvent: "format" });
+          v.focus();
+        },
+      }));
+      items.splice(items.findIndex(x => x.id === "callout") + 1, 0, ...points);
       // The screen's own commands ("/5w2h").
       for (const name of Object.keys(cb.current.commands ?? {})) items.unshift({ id: name, label: `/${name}`, run: () => cb.current.commands?.[name]?.() });
       return items;
@@ -248,7 +262,7 @@ export function Editor({ text, onChange, onSaveNow, placeholder, autoFocus, comm
           EditorView.lineWrapping,
           // Keep the caret clear of the screen edges and the Android keyboard while typing.
           EditorView.scrollMargins.of(() => ({ top: 24, bottom: 48 })),
-          EditorView.contentAttributes.of({ spellcheck: "true", autocapitalize: "sentences", autocorrect: "on" }),
+          EditorView.contentAttributes.of({ spellcheck: "true", autocapitalize: "sentences", autocorrect: "on", "aria-label": t.editor.textLabel }),
           EditorState.phrases.of(t.editor.phrases),
           placeholderExt(readOnly ? placeholder ?? "" : placeholderWithHint(placeholder ?? "", t.editor.slashHint)),
           slashHint(t.editor.slashHint),

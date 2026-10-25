@@ -30,9 +30,11 @@ interface Props {
   links?: WikiLinks;
   /** Shown under the text (backlinks). */
   footer?: ReactNode;
+  /** Where the note is (group › subject), at the left of the top bar. */
+  crumbs?: ReactNode;
 }
 
-export function NoteEditor({ path, placeholder, onBack, backOnWide, removeIfEmpty, autoFocus, actions, links, footer }: Props) {
+export function NoteEditor({ path, placeholder, onBack, backOnWide, removeIfEmpty, autoFocus, actions, links, footer, crumbs }: Props) {
   const f = useNoteFile(path, { removeIfEmpty: removeIfEmpty ? body => body.trim() === "" : undefined });
   useBack(!!onBack, () => onBack?.());
   const [guide, setGuide] = useState(false);
@@ -55,6 +57,7 @@ export function NoteEditor({ path, placeholder, onBack, backOnWide, removeIfEmpt
             <ArrowLeft size={20} />
           </button>
         )}
+        {crumbs}
         <span className={`note-status mono${f.status === "error" ? " err" : ""}`} aria-live="polite">
           {f.note ? t.note.status[f.status] : ""}
         </span>

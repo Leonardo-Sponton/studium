@@ -11,10 +11,17 @@ export interface LinkPlace {
   area: "study";
   path: string;
   title: string;
+  /** Where it is (its subject, or a subject's group), shown under the title. */
+  where?: string;
 }
 
 export function linkPlaces(lists: { study: Subject[] }): LinkPlace[] {
-  return linkTargets(lists.study).map(x => ({ area: "study", path: x.path, title: x.title }));
+  const dirOf = (p: string) => p.split("/").slice(0, 2).join("/");
+  return linkTargets(lists.study).map(x => {
+    const s = lists.study.find(y => y.dir === dirOf(x.path));
+    const where = !s ? undefined : x.kind === "subject" ? s.group || (s.course ? undefined : "") : s.title;
+    return { area: "study", path: x.path, title: x.title, where: where || undefined };
+  });
 }
 
 export function findPlace(places: LinkPlace[], name: string): LinkPlace | null {

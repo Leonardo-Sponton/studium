@@ -6,8 +6,16 @@ import { t } from "../i18n";
 
 export function Dialog({ title, onClose, children }: { title: string; onClose(): void; children: ReactNode }) {
   useBack(true, onClose);
+  const backdrop = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // Only the dialog on top closes (one can open from inside another); the one under it may hear
+    // the key after the top one is already gone, so the key is marked as used.
+    const onKey = (e: KeyboardEvent) => {
+      const all = document.querySelectorAll(".dialog-backdrop");
+      if (e.key !== "Escape" || e.defaultPrevented || all[all.length - 1] !== backdrop.current) return;
+      e.preventDefault();
+      onClose();
+    };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -16,6 +24,7 @@ export function Dialog({ title, onClose, children }: { title: string; onClose():
   const downOnBackdrop = useRef(false);
   return (
     <div
+      ref={backdrop}
       className="dialog-backdrop"
       onPointerDown={e => (downOnBackdrop.current = e.target === e.currentTarget)}
       onClick={e => downOnBackdrop.current && e.target === e.currentTarget && onClose()}

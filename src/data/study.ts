@@ -3,18 +3,27 @@ import { parseCards, statesOf, isDue, writeState, type Card, type CardState } fr
 import { isoDate, slugify, stamp } from "./dates";
 import { parse, titleOf, type Data } from "./frontmatter";
 import type { Note, Notes } from "./notes";
+import { readReview, reviewPoints, type ReviewPoint } from "./recall";
 import { addFile, CLASS_RESULTS, loadAssignments, num, slotsOf, toExam, type Assignment, type ClassResult, type Exam, type Slot } from "./school";
 
 // Study: one folder per subject (JDBC, Docker, a school course…), study/<slug>/:
 //   subject.md            the subject: title, group, parent subject (the tree), exam date in the
 //                         header; the body is "in my own words", the subject explained as if
-//                         teaching it (Feynman). A school subject also has course, semester and
+//                         teaching it (Feynman). `notebook_at` keeps the notebook chapter
+//                         opened last (data/notebook). `kind: hub` = a subject that only gathers
+//                         others (its page is an index of them); `kind: study` = a study folder
+//                         (notebook, notes, materials…); no kind = guessed (ui/study/SubjectPage isHub).
+//                         The kind is set once (when made, or once for an older subject) and
+//                         then never changes. A school subject also has course, semester and
 //                         class fields (data/school); its body is the syllabus.
 //   materials/<name>.md   what is studied from: a handout an AI wrote, a book, a course. The whole
 //                         text lives in the body; its headings are the chapters, and the header
 //                         keeps which chapters are read (`done`) and where reading stopped (`at`)
 //   notes/<stamp>.md      study notes ("# Title"), optionally about one chapter of a material;
-//                         flashcards inside them (data/cards) keep their review state in the header.
+//                         flashcards inside them (data/cards) keep their review state in the header,
+//                         and so does the whole-note review, `review:` (data/recall). A title that
+//                         starts with a number ("08. Transações") makes it a chapter of the
+//                         subject's notebook (data/notebook).
 //                         `kind: class` (with `date`) = notes of one class; `kind: cards` = a note
 //                         holding only flashcards (added by hand or made by the AI from a material)
 //   links.md              links to read or watch (videos, docs, articles): one Markdown list item
@@ -27,6 +36,7 @@ import { addFile, CLASS_RESULTS, loadAssignments, num, slotsOf, toExam, type Ass
 //   exercises/            exercises to practise with: lists written or imported as .md ("# Title"),
 //                         PDFs (opened in the device's PDF app) and a links.md like the subject's
 //   assignments/, exams/  school subjects only (data/school)
+//   cover.jpg             the subject's own cover picture (any picture extension), optional
 // study/_groups.md keeps the personal groups (their order, and groups with no subject yet);
 // study/_covers/ their cover pictures.
 // Notes link to each other with [[Title]] (a note, a material or a subject, by title).
@@ -164,11 +174,26 @@ export interface StudyNote {
   states: Map<string, CardState>;
   /** Names this note links to with [[…]]. */
   links: string[];
+  /** Notebook chapter number, from the title ("08. Transações" → 8; data/notebook), or null. */
+  order: number | null;
+  /** Nothing written under the title yet: a topic still to study. */
+  empty: boolean;
+  /** Marked as finished (`finished: true`), for a notebook chapter: nothing left to write. */
+  finished: boolean;
+  /** Length of the text, in characters. */
+  chars: number;
+  /** Whole-note review (data/recall), when it was ever reviewed. */
+  review?: CardState;
+  /** Callouts kept as things to look at again (data/recall). */
+  points: ReviewPoint[];
   /** Title and body folded (no accents, lowercase), for the notes filter. */
   folded: string;
   created: string;
   modified: string;
 }
+
+/** What a personal subject is: a hub that gathers others, a study folder, or "" (not chosen: guessed). */
+export type SubjectKind = "hub" | "study" | "";
 
 export interface Subject {
   path: string;
@@ -176,6 +201,11 @@ export interface Subject {
   /** Folder name: what a child subject points to in `parent:`. */
   slug: string;
   title: string;
+  kind: SubjectKind;
+  /** The subject's own cover picture (`<dir>/cover.jpg`), or "". */
+  cover: string;
+  /** How the cover is framed (`cover_frame: "x y zoom"`), or "" for centered. */
+  coverFrame: string;
   group: string;
   parent: string;
   exam: string;
@@ -195,6 +225,10 @@ export interface Subject {
   exams: Exam[];
   /** The "in my own words" text is not empty. */
   hasSummary: boolean;
+  /** File name of the notebook chapter where reading stopped (data/notebook), or "". */
+  notebookAt: string;
+  /** When the subject's header last changed: when `notebookAt` was set, near enough. */
+  notebookWhen: string;
   materials: Material[];
   notes: StudyNote[];
   links: StudyLink[];
@@ -435,7 +469,11 @@ export async function renameGroup(notes: Notes, subjects: Subject[], saved: stri
   // The cover follows, unless the group it merges into has one.
   const covers = await loadCovers(notes.storage);
   const old = covers[slugify(from)];
-  if (old && !covers[slugify(to)]) await notes.storage.move(old, `${COVERS_DIR}/${slugify(to)}${old.slice(old.lastIndexOf("."))}`);
+  if (old && !covers[slugify(to)]) {
+    await notes.storage.move(old, `${COVERS_DIR}/${slugify(to)}${old.slice(old.lastIndexOf("."))}`);
+    await setGroupCoverFrame(notes, to, frameOf((await loadGroupFrames(notes))[slugify(from)]));
+  }
+  await setGroupCoverFrame(notes, from, null);
 }
 
 /** Removes a group; its subjects stay, with no group. */
@@ -443,6 +481,7 @@ export async function deleteGroup(notes: Notes, subjects: Subject[], saved: stri
   for (const s of subjects) if (!isSchool(s) && s.group === name) await notes.patchHeader(s.path, { group: undefined });
   await saveGroups(notes, allGroups(saved, subjects).filter(g => g !== name));
   await removeGroupCover(notes.storage, name);
+  await setGroupCoverFrame(notes, name, null);
 }
 
 // ---- Group covers (personal) ----
@@ -473,6 +512,82 @@ export async function removeGroupCover(storage: Notes["storage"], group: string)
   const old = coverOf(await loadCovers(storage), group);
   if (old) await storage.remove(old);
 }
+// ---- Cover framing ----
+// What part of a cover shows: the point kept in view (x, y in % of the picture) and the zoom
+// (1 = just fills the box). Written "x y zoom": `cover_frame:` in a subject's header, and
+// `frames: { <group slug>: "x y zoom" }` in study/_groups.md for group covers.
+
+export interface CoverFrame {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export const CENTERED: CoverFrame = { x: 50, y: 50, zoom: 1 };
+export const ZOOM_MAX = 4;
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** "x y zoom" as a frame, or null when it isn't one. */
+export function frameOf(v: unknown): CoverFrame | null {
+  const n = str(v).trim().split(/\s+/).map(Number);
+  if (n.length !== 3 || n.some(x => !Number.isFinite(x))) return null;
+  return { x: clamp(n[0], 0, 100), y: clamp(n[1], 0, 100), zoom: clamp(n[2], 1, ZOOM_MAX) };
+}
+
+/** A frame as "x y zoom" ("" for none or centered). */
+export function frameText(f: CoverFrame | null): string {
+  if (!f || (f.x === 50 && f.y === 50 && f.zoom === 1)) return "";
+  return `${Math.round(f.x * 10) / 10} ${Math.round(f.y * 10) / 10} ${Math.round(f.zoom * 100) / 100}`;
+}
+
+export async function setSubjectCoverFrame(notes: Notes, path: string, f: CoverFrame | null): Promise<void> {
+  await notes.patchHeader(path, { cover_frame: frameText(f) || undefined });
+}
+
+/** Group cover frames ("x y zoom") by group slug. */
+export async function loadGroupFrames(notes: Notes): Promise<Record<string, string>> {
+  if (!(await notes.exists(GROUPS_PATH))) return {};
+  const d = (await notes.load(GROUPS_PATH)).data.frames;
+  const out: Record<string, string> = {};
+  if (d && typeof d === "object") for (const [k, v] of Object.entries(d)) if (frameText(frameOf(v))) out[k] = frameText(frameOf(v));
+  return out;
+}
+
+export async function setGroupCoverFrame(notes: Notes, group: string, f: CoverFrame | null): Promise<void> {
+  const text = frameText(f);
+  const exists = await notes.exists(GROUPS_PATH);
+  if (!exists && !text) return;
+  const n = exists ? await notes.load(GROUPS_PATH) : null;
+  const frames = { ...(await loadGroupFrames(notes)) };
+  if (text) frames[slugify(group)] = text;
+  else delete frames[slugify(group)];
+  const data = { ...(n?.data ?? { type: "groups", groups: [] }), frames: Object.keys(frames).length ? frames : undefined };
+  if (n) await notes.save(n, data, n.body);
+  else await notes.create(GROUPS_PATH, data, "");
+}
+
+// ---- Subject covers ----
+// <subject dir>/cover.jpg: a hub's or a study folder's own picture, over its group's.
+
+const subjectCover = async (storage: Notes["storage"], dir: string) => {
+  const f = (await storage.list(dir)).find(x => !x.isDir && /^cover\./i.test(x.name) && COVER_EXTS.test(x.name) && !x.name.includes(".tmp-"));
+  return f ? `${dir}/${f.name}` : "";
+};
+
+/** Sets a subject's cover (`ext` like ".jpg"), replacing the one it had. */
+export async function setSubjectCover(storage: Notes["storage"], dir: string, ext: string, data: Uint8Array): Promise<string> {
+  await removeSubjectCover(storage, dir);
+  const path = `${dir}/cover${ext}`;
+  await storage.writeBinary(path, data);
+  return path;
+}
+
+export async function removeSubjectCover(storage: Notes["storage"], dir: string): Promise<void> {
+  const old = await subjectCover(storage, dir);
+  if (old) await storage.remove(old);
+}
+
 export const materialName = (path: string) => path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/, "");
 
 /**
@@ -542,23 +657,39 @@ export function toStudyNote(n: Note): StudyNote {
     cards: parseCards(n.body),
     states: statesOf(n.data),
     links: linksIn(n.body),
+    order: orderOf(title),
+    empty: !rest.trim(),
+    finished: n.data.finished === true,
+    chars: rest.length,
+    review: readReview(n.data.review),
+    points: reviewPoints(n.body),
     folded: fold(`${title}\n${n.body}`),
     created: str(n.data.created),
     modified: str(n.data.modified ?? n.data.created),
   };
 }
 
+/** The chapter number a title starts with ("08. Transações" → 8), or null (data/notebook). */
+export function orderOf(title: string): number | null {
+  const m = /^\s*(\d{1,4})\s*[.)\-–—:]\s*\S/.exec(title);
+  return m ? Number(m[1]) : null;
+}
+
 export const STUDY_NOTE_SORTS = ["chapter", "modified", "newest", "oldest", "title"] as const;
 export type StudyNoteSort = (typeof STUDY_NOTE_SORTS)[number];
 
-/** What the notes list of a subject keeps: all, the notes on one material or PDF, the free ones, or those with cards. */
-export type StudyNoteOnly = "" | "free" | "cards" | `m:${string}` | `p:${string}`;
+/** What the notes list of a subject keeps: all, the notebook, the notes on one material or PDF, the free ones, or those with cards. */
+export type StudyNoteOnly = "" | "notebook" | "free" | "cards" | `m:${string}` | `p:${string}`;
 
-/** A note made from a material or a PDF; the others are free ("standalone"). */
-export const isFreeNote = (n: StudyNote) => !n.material && !n.pdf;
+/** A chapter of the subject's notebook: a plain note whose title starts with a number (data/notebook). */
+export const isNotebookNote = (n: StudyNote) => n.kind === "note" && n.order !== null && !n.material && !n.pdf;
+
+/** A note tied to nothing: not on a material or a PDF, not a notebook chapter ("standalone"). */
+export const isFreeNote = (n: StudyNote) => !n.material && !n.pdf && !isNotebookNote(n);
 
 /** The notes of a subject that have every word of `query`, kept by `only`, in the chosen order.
- *  "chapter" follows the materials (as listed) and their chapters, then the PDFs, free notes last, each by creation. */
+ *  "chapter" follows the materials (as listed) and their chapters, then the PDFs, then the notebook in its
+ *  numbered order, free notes last, each by creation. */
 export function filterStudyNotes(s: Subject, query: string, only: StudyNoteOnly, sort: StudyNoteSort): StudyNote[] {
   const words = fold(query).split(/\s+/).filter(Boolean);
   const list = s.notes.filter(
@@ -567,20 +698,23 @@ export function filterStudyNotes(s: Subject, query: string, only: StudyNoteOnly,
       (only === "" ||
         (only === "free"
           ? isFreeNote(n)
-          : only === "cards"
-            ? n.cards.length > 0
-            : only.startsWith("p:")
-              ? n.pdf === only.slice(2)
-              : n.material === only.slice(2))),
+          : only === "notebook"
+            ? isNotebookNote(n)
+            : only === "cards"
+              ? n.cards.length > 0
+              : only.startsWith("p:")
+                ? n.pdf === only.slice(2)
+                : n.material === only.slice(2))),
   );
   const byCreated = (a: StudyNote, b: StudyNote) => a.created.localeCompare(b.created) || a.path.localeCompare(b.path);
   const at = new Map(s.materials.map((m, i) => [m.name, i]));
   const pdfAt = new Map(s.pdfs.map((p, i) => [p.name, s.materials.length + 1 + i]));
   const free = s.materials.length + s.pdfs.length + 2;
   const place = (n: StudyNote) =>
-    n.material ? (at.get(n.material) ?? s.materials.length) : n.pdf ? (pdfAt.get(n.pdf) ?? free - 1) : free;
+    n.material ? (at.get(n.material) ?? s.materials.length) : n.pdf ? (pdfAt.get(n.pdf) ?? free - 1) : isNotebookNote(n) ? free - 0.5 : free;
   const cmp: Record<StudyNoteSort, (a: StudyNote, b: StudyNote) => number> = {
-    chapter: (a, b) => place(a) - place(b) || (a.chapter ?? 1e9) - (b.chapter ?? 1e9) || byCreated(a, b),
+    chapter: (a, b) =>
+      place(a) - place(b) || (a.chapter ?? 1e9) - (b.chapter ?? 1e9) || (isNotebookNote(a) ? a.order! - b.order! : 0) || byCreated(a, b),
     modified: (a, b) => b.modified.localeCompare(a.modified) || byCreated(a, b),
     newest: (a, b) => byCreated(b, a),
     oldest: byCreated,
@@ -713,6 +847,9 @@ export async function loadSubjects(notes: Notes, onError?: (path: string) => voi
       dir,
       slug: f.name,
       title: str(d.title) || f.name,
+      kind: d.kind === "hub" || d.kind === "study" ? d.kind : "",
+      cover: await subjectCover(notes.storage, dir),
+      coverFrame: frameText(frameOf(d.cover_frame)),
       group: str(d.group),
       parent: str(d.parent),
       exam: str(d.exam).slice(0, 10),
@@ -728,6 +865,8 @@ export async function loadSubjects(notes: Notes, onError?: (path: string) => voi
       assignments,
       exams,
       hasSummary: n.body.trim() !== "",
+      notebookAt: str(d.notebook_at),
+      notebookWhen: str(d.modified ?? d.created),
       materials,
       notes: studyNotes,
       links,
@@ -746,12 +885,13 @@ export const groupsOf = (subjects: Subject[]) => [...new Set(subjects.map(s => s
 
 export async function createSubject(
   notes: Notes,
-  fields: { title: string; group?: string; parent?: string; course?: string; semester?: number },
+  fields: { title: string; kind?: SubjectKind; group?: string; parent?: string; course?: string; semester?: number },
 ): Promise<Note> {
   const dir = await notes.freePath("study", slugify(fields.title), "");
   const data: Data = {
     type: "subject",
     title: fields.title.trim(),
+    kind: !fields.course && fields.kind ? fields.kind : undefined,
     group: fields.group?.trim() || undefined,
     parent: fields.parent || undefined,
     course: fields.course || undefined,

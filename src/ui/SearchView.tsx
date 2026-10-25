@@ -32,9 +32,11 @@ interface Props {
   focusKey: number;
   /** Opens a study file in the Study screen. Returns false for other files (they open here). */
   openElsewhere(doc: Doc): boolean;
+  /** Where a study file is (its subject, or a subject's group), shown in the results. */
+  whereOf?(path: string): string | undefined;
 }
 
-export function SearchView({ state, setState, focusKey, openElsewhere }: Props) {
+export function SearchView({ state, setState, focusKey, openElsewhere, whereOf }: Props) {
   const { notes, version } = useApp();
   const [docs, setDocs] = useState<Doc[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -135,7 +137,7 @@ export function SearchView({ state, setState, focusKey, openElsewhere }: Props) 
                       </span>
                     )}
                     <span className="list-meta mono">
-                      {areaLabel(doc.area)}
+                      {whereOf?.(doc.path) ?? areaLabel(doc.area)}
                       {doc.date && ` · ${doc.date.replace("T", " ")}`}
                     </span>
                   </button>

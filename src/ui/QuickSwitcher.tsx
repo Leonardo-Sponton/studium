@@ -14,10 +14,12 @@ export interface Command {
   id: string;
   label: string;
   icon?: ReactNode;
+  /** Its shortcut, shown at the right (ui/shortcuts). */
+  keys?: string;
   run(): void;
 }
 
-type Row = { key: string; label: string; sub?: string; icon?: ReactNode; run(): void };
+type Row = { key: string; label: string; sub?: string; icon?: ReactNode; keys?: string; run(): void };
 
 export function QuickSwitcher(props: { mode: "open" | "commands"; places: LinkPlace[]; commands: Command[]; onOpen(p: LinkPlace): void; onCreate?(title: string): void; onClose(): void }) {
   const [query, setQuery] = useState("");
@@ -30,7 +32,7 @@ export function QuickSwitcher(props: { mode: "open" | "commands"; places: LinkPl
   const rows = useMemo<Row[]>(() => {
     const words = fold(query).folded.split(/\s+/).filter(Boolean);
     const hit = (s: string) => words.every(w => fold(s).folded.includes(w));
-    if (props.mode === "commands") return props.commands.filter(c => hit(c.label)).map(c => ({ key: c.id, label: c.label, icon: c.icon, run: c.run }));
+    if (props.mode === "commands") return props.commands.filter(c => hit(c.label)).map(c => ({ key: c.id, label: c.label, icon: c.icon, keys: c.keys, run: c.run }));
     const recent = recentFiles();
     const rank = (p: LinkPlace) => {
       const r = recent.indexOf(p.path);
@@ -40,7 +42,7 @@ export function QuickSwitcher(props: { mode: "open" | "commands"; places: LinkPl
       .filter(p => hit(p.title))
       .sort((a, b) => rank(a) - rank(b) || Number(!fold(a.title).folded.startsWith(words[0] ?? "")) - Number(!fold(b.title).folded.startsWith(words[0] ?? "")) || a.title.localeCompare(b.title))
       .slice(0, 60)
-      .map<Row>(p => ({ key: p.path, label: p.title, sub: areaLabel(p.area), run: () => props.onOpen(p) }));
+      .map<Row>(p => ({ key: p.path, label: p.title, sub: p.where ?? areaLabel(p.area), run: () => props.onOpen(p) }));
     const name = query.trim();
     if (name && props.onCreate && !props.places.some(p => fold(p.title).folded === fold(name).folded)) {
       shown.push({ key: "+new", label: t.switcher.create(name), icon: <FilePlus size={16} />, run: () => props.onCreate?.(name) });
@@ -89,6 +91,7 @@ export function QuickSwitcher(props: { mode: "open" | "commands"; places: LinkPl
               <span className="row" style={{ gap: 8 }}>
                 {r.icon}
                 {r.label}
+                {r.keys && <kbd className="ctx-keys">{r.keys}</kbd>}
               </span>
               {r.sub && <small>{r.sub}</small>}
             </button>

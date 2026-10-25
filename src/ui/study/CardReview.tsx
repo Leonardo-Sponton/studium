@@ -2,7 +2,8 @@ import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft, BookOpen, Layers } from "lucide-react";
 import { GRADES, schedule, type Grade } from "../../data/cards";
 import { isoDate } from "../../data/dates";
-import { continueAt, dueCards, setCardState, type DueCard, type Subject } from "../../data/study";
+import { dueCards, setCardState, type DueCard, type Subject } from "../../data/study";
+import { todayPicks } from "../../data/notebook";
 import { useApp } from "../context";
 import { useBack } from "../useBack";
 import { t } from "../../i18n";
@@ -122,34 +123,39 @@ export function CardReview(props: { cards: DueCard[]; onClose(): void; onOpenNot
   );
 }
 
-/** On Today: cards to review and where reading stopped. Hidden when there is neither. */
-export function StudyCard(props: { subjects: Subject[]; onReview(): void; onContinue(path: string, chapter: number): void }) {
+/** On Today: where reading stopped (a material or a notebook chapter) and, quietly, the cards. Hidden when there is neither. */
+export function StudyCard(props: { subjects: Subject[]; onReview(): void; onContinue(path: string, chapter?: number): void }) {
   const due = dueCards(props.subjects).length;
-  const go = continueAt(props.subjects);
+  const go = todayPicks(props.subjects).find(p => p.kind === "continue-material" || p.kind === "continue-notebook");
   if (!due && !go) return null;
+  const what =
+    go?.kind === "continue-material"
+      ? `${go.material.title} · ${go.title || t.study.chapter(go.chapter)}`
+      : go?.kind === "continue-notebook"
+        ? `${go.subject.title} · ${go.note.title}`
+        : "";
   return (
     <div className="today-card study-card" aria-label={t.study.todayCard}>
       <Layers size={18} />
       <span className="what">
         <span className="muted small">{t.study.todayCard}</span>
-        {go && (
-          <span className="one-line">
-            {go.material.title} · {go.chapter.title || t.study.chapter(go.chapter.n)}
-          </span>
-        )}
-      </span>
-      <span className="row" style={{ gap: 4 }}>
+        {what && <span className="one-line">{what}</span>}
         {due > 0 && (
-          <button className="btn ghost" onClick={props.onReview}>
-            {t.study.reviewAll(due)}
-          </button>
-        )}
-        {go && (
-          <button className="btn" onClick={() => props.onContinue(go.material.path, go.chapter.n)}>
-            {t.study.continue}
+          <button className="subj-review-quiet" style={{ padding: "2px 0" }} onClick={props.onReview}>
+            {t.study.reviewWhenever(due)}
           </button>
         )}
       </span>
+      {go && (
+        <button
+          className="btn"
+          onClick={() =>
+            go.kind === "continue-material" ? props.onContinue(go.material.path, go.chapter) : go.kind === "continue-notebook" && props.onContinue(go.note.path)
+          }
+        >
+          {t.study.continue}
+        </button>
+      )}
     </div>
   );
 }

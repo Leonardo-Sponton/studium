@@ -123,19 +123,3 @@ export function GroupsDialog(props: { subjects: Subject[]; saved: string[]; onCl
     </Dialog>
   );
 }
-
-/** Hold menu → "Move to group": the groups to pick from, plus "No group". */
-export function MoveToGroup(props: { subject: Subject; groups: string[]; onPick(group: string): void; onClose(): void }) {
-  return (
-    <Dialog title={t.study.moveToGroupOf(props.subject.title)} onClose={props.onClose}>
-      <div className="stack" style={{ gap: 2 }}>
-        {[...props.groups, ""].map(g => (
-          <button key={g || "-"} className={`menu-item${props.subject.group === g ? " active" : ""}`} onClick={() => props.onPick(g)}>
-            {props.subject.group === g ? <Check size={18} /> : <span style={{ width: 18 }} />}
-            {g || t.study.noGroup}
-          </button>
-        ))}
-      </div>
-    </Dialog>
-  );
-}

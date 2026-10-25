@@ -32,6 +32,7 @@ Um app para <b>Linux</b> e <b>Android</b>, 100% offline, com os dados guardados 
 | --- | --- |
 | **Hoje** | As aulas de hoje (do horário da faculdade), os flashcards para revisar e o capítulo onde você parou. |
 | **Estudos pessoais** | Área própria, que abre numa página inicial com as matérias numa árvore como a do Obsidian (grupos → matérias → submatérias) ou em cards por grupo, com capa; cada uma com "com minhas palavras" (Feynman), materiais, PDFs, exercícios, links com tipos (documentação, vídeo, artigo…), anotações e um Workbench de projetos práticos com guias. |
+| **Navegação** | Um painel lateral que fica ao lado do que está aberto: fixados, recentes e a árvore, onde anotações e matérias são renomeadas no lugar (F2), movidas (menu ou arrastando), duplicadas, fixadas ou excluídas, com os `[[links]]` atualizados ao renomear. Voltar e avançar (Ctrl+Alt+← / →, botões laterais do mouse), paleta de comandos (Ctrl+P) que mostra cada atalho, e a lista completa no F1. Veja [docs/UX.md](docs/UX.md). |
 | **Materiais** | Apostilas importadas de arquivos `.md` ou coladas, lidas capítulo por capítulo, com marcação de lido e "você parou aqui". |
 | **Anotações** | Por material, capítulo ou PDF, com etiquetas, filtros e ordens; `[[links]]` entre anotações, materiais e matérias, com backlinks. |
 | **Flashcards** | Escritos dentro das anotações com as marcas do Spaced Repetition do Obsidian (`::`, `:::`, `?`, `??`), revisados com um SM-2 simplificado por matéria ou tudo de uma vez. |

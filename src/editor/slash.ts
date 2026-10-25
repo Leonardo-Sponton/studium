@@ -25,8 +25,13 @@ export function slashCompletion(items: () => SlashItem[]) {
     // Not inside code or formulas, where "/" is just a character.
     const at = syntaxTree(ctx.state).resolveInner(ctx.pos, -1).name;
     if (/Code|Math|Comment|URL|Link/.test(at)) return null; // HiddenComment and HTML comments too
-    const options: Completion[] = items().map((it, i) => ({
-      label: `${it.label} ${it.keywords ?? ""} ${it.id}`,
+    const list = items();
+    const text = list.map(it => `${it.label} ${it.keywords ?? ""} ${it.id}`);
+    // All padded to one length: CodeMirror takes the length off a case-folded match ("/ponto"
+    // for "Ponto…"), which would put short names first instead of the menu's own order.
+    const width = Math.max(...text.map(x => x.length));
+    const options: Completion[] = list.map((it, i) => ({
+      label: text[i].padEnd(width),
       displayLabel: it.label,
       detail: it.detail,
       boost: -i / 100,

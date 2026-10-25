@@ -776,6 +776,7 @@ h3 {
 .cm-hm-callout-tip { --co: var(--ok); }
 .cm-hm-callout-warn { --co: var(--h2); }
 .cm-hm-callout-danger { --co: var(--err); }
+.cm-hm-callout-hard { --co: var(--err); }
 .cm-hm-callout-example { --co: var(--cyan); }
 .cm-hm-callout-quote { --co: var(--muted); }
 .cm-hm-callout-title,
@@ -3798,6 +3799,7 @@ ul.tree {
 .print-doc .callout-tip { --co: var(--ok); }
 .print-doc .callout-warn { --co: var(--h2); }
 .print-doc .callout-danger { --co: var(--err); }
+.print-doc .callout-hard { --co: var(--err); }
 .print-doc .callout-example { --co: var(--cyan); }
 .print-doc .callout-quote { --co: var(--muted); }
 .print-doc .embed { margin: 0 0 0.75em; padding: 6px 12px; border-left: 2px solid var(--line); }
@@ -3839,6 +3841,10 @@ ul.tree {
 }
 .note-tag.pdf {
   --tag: var(--h1);
+}
+.note-tag.notebook,
+.note-tag.hub {
+  --tag: var(--accent);
 }
 
 /* Study: workbench (ui/study/Workbench). */
@@ -4444,7 +4450,8 @@ ul.tree {
   .subj-tabs button {
     padding: 12px 8px 10px;
   }
-  .subj-tabs button:not(.active) .subj-tab-label {
+  .subj-tabs button:not(.active) .subj-tab-label,
+  .subj-tabs button:not(.active) .subj-tab-n {
     display: none;
   }
 }
@@ -4539,9 +4546,148 @@ ul.tree {
   background: var(--hover);
   font-size: 0.7rem;
 }
-.subj-body {
+/* The sections, one under the other: each with its color, an icon, a title and its actions. */
+.subj-sections {
+  display: flex;
+  flex-direction: column;
+}
+.subj-sec {
+  --sec: var(--accent);
+  padding: 26px 0 6px;
+  /* Its top line goes under the sticky bar. */
+  scroll-margin-top: 42px;
+}
+.subj-sec + .subj-sec {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.subj-sec.sec-overview {
+  --sec: var(--h1);
+  padding-top: 18px;
+}
+.subj-sec.sec-notes {
+  --sec: var(--h3);
+}
+.subj-sec.sec-materials {
+  --sec: var(--cyan);
+}
+.subj-sec.sec-workbench {
+  --sec: var(--h2);
+}
+.subj-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.subj-sec-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sec) 16%, transparent);
+  color: var(--sec);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sec) 28%, transparent);
+}
+.subj-sec-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.subj-sec-title {
+  margin: 0;
+  font: 600 1.15rem/1.3 var(--sans);
+  color: var(--strong);
+}
+.subj-sec-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.subj-sec-actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+.subj-sec-body {
   gap: 16px;
-  padding-top: 4px;
+}
+/* Inside Materials: .md, PDFs, exercises, links, apart from each other. */
+.subj-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 50px;
+}
+.subj-sub + .subj-sub {
+  margin-top: 10px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+}
+.subj-sub-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+}
+.subj-sub-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 0.75rem/1.4 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.subj-sub-title svg {
+  color: var(--sec);
+}
+.subj-sub > p.muted,
+.subj-sub > .muted.small {
+  margin: 0;
+}
+/* Exercise links: a smaller heading under the exercises, no line of its own. */
+.subj-sub .exercise-group {
+  margin-top: 6px;
+}
+.subj-sub .exercise-group .task-notes-head {
+  border-top: 0;
+  padding-top: 0;
+}
+.subj-sub .exercise-group h3 {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.subj-sub .exercise-group p.muted {
+  margin: 0;
+}
+.subj-material {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.subj-material.held {
+  border-color: var(--accent);
+}
+/* The menu of right-click / hold (ui/ContextMenu). */
+.more-pop.ctx-pop {
+  right: auto;
+  bottom: auto;
+  min-width: 210px;
+  max-width: min(320px, calc(100vw - 16px));
+}
+.ctx-title {
+  padding: 4px 10px 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
 }
 .subj-h {
   margin: 0;
@@ -4637,6 +4783,7 @@ ul.tree {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 8px;
+  align-items: start;
 }
 .subj-kid {
   display: flex;
@@ -4712,6 +4859,9 @@ ul.tree {
 }
 .subj-note.pdf {
   --tag: var(--h1);
+}
+.subj-note.notebook {
+  --tag: var(--accent);
 }
 @media (hover: hover) {
   .subj-note:hover {
@@ -4897,6 +5047,851 @@ ul.tree {
 .btn.danger-text {
   color: var(--err);
 }
-.subj-body .workbench h2 {
+
+/* ---- Personal study: side panel (ui/study/Explorer) beside the home or the open item ---- */
+
+.study-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+.study-split.with-explorer {
+  grid-template-columns: minmax(240px, 300px) 1fr;
+}
+.study-split > .detail-pane > .page,
+.study-split > .detail-pane > .study-home {
+  flex: 1;
+  min-height: 0;
+}
+.explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 40px;
+}
+/* The way back, new note… stay on top while the tree scrolls. */
+.explorer-top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 12px;
+  background: var(--surface);
+}
+.explorer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 0 4px 2px;
+}
+.explorer-head .study-home-link h1 {
+  font-size: 1rem;
+}
+.explorer-tools {
+  gap: 0;
+  flex-shrink: 0;
+}
+.explorer .btn.icon,
+.explorer-rail .btn.icon {
+  min-height: 34px;
+  padding: 0 7px;
+  border-color: transparent;
+}
+.explorer-actions {
+  display: flex;
+  gap: 2px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.explorer-actions .btn {
+  min-height: 34px;
+  border-color: transparent;
+  font-size: 0.88rem;
+}
+.explorer-actions .btn:first-child {
+  flex: 1;
+  justify-content: flex-start;
+  padding: 0 8px;
+}
+.explorer-sec + .explorer-sec {
+  margin-top: 6px;
+}
+.explorer-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 6px 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.explorer-list {
+  gap: 0;
+}
+.explorer-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+}
+.explorer-link.active {
+  background: var(--select);
+  color: var(--strong);
+}
+.explorer-link > .one-line {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.explorer-where {
+  flex: 0 1 auto;
+  max-width: 40%;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.explorer-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 4px;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+/* The home's list view would repeat the side panel's tree: a hint instead. */
+.home-tree-hint {
+  display: none;
+}
+@media (min-width: 720px) {
+  .with-explorer .home-tree {
+    display: none;
+  }
+  .with-explorer .home-tree-hint {
+    display: block;
+  }
+}
+@media (max-width: 719px) {
+  .study-split,
+  .study-split.with-explorer {
+    display: flex;
+    flex-direction: column;
+  }
+  .study-split .explorer,
+  .study-split .explorer-rail {
+    display: none;
+  }
+  .study-split > .detail-pane {
+    flex: 1;
+  }
+  .app:has(.study-split.has-detail) .bottombar {
+    display: none;
+  }
+}
+
+/* ---- The tree (ui/study/SubjectTree): one line per row, compact but with room to aim ---- */
+
+ul.tree[role="tree"],
+ul.tree[role="group"] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tree-item {
+  outline: none;
+}
+.tree-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding-right: 4px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+.kind-group > .tree-line {
+  font-weight: 600;
+  color: var(--strong);
+}
+.kind-subject > .tree-line {
+  color: var(--strong);
+}
+.tree-line.active {
+  background: var(--select);
+  color: var(--strong);
+}
+.tree-item:focus-visible > .tree-line {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tree-line.drop {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  outline: 1px dashed var(--accent);
+}
+.tree-twisty {
+  flex-shrink: 0;
+  width: 18px;
+  display: inline-flex;
+  justify-content: center;
+  color: var(--muted);
+}
+.tree-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--muted);
+}
+.tree-title {
+  flex: 1;
+  min-width: 0;
+}
+.tree-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--strong);
+  font: 600 0.7rem/18px var(--mono);
+  text-align: center;
+}
+.tree-more {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
   visibility: hidden;
+}
+.tree-line:hover .tree-more,
+.tree-line.active .tree-more,
+.tree-item:focus-visible > .tree-line .tree-more {
+  visibility: visible;
+}
+.tree-more:hover {
+  background: var(--hover);
+  color: var(--strong);
+}
+.tree-rename {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--strong);
+  font: inherit;
+}
+.tree-item .tree-empty {
+  padding: 4px 0 6px 44px;
+}
+@media (hover: hover) {
+  .tree-line:hover {
+    background: var(--hover);
+  }
+  .tree-line.active:hover {
+    background: var(--select);
+  }
+  .explorer-link:hover {
+    background: var(--hover);
+  }
+}
+/* Touch: taller rows (44px targets); options by holding the row. */
+@media (pointer: coarse) {
+  .tree-line,
+  .explorer-link {
+    min-height: 44px;
+  }
+}
+
+/* ---- Menus, palette and dialogs: shortcuts at the right ---- */
+
+.ctx-label {
+  flex: 1;
+}
+kbd,
+.ctx-keys {
+  /* Inter has the arrows (← →) the mono font lacks. */
+  font: 500 0.72rem/1.4 var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+  white-space: nowrap;
+}
+.switcher-item .ctx-keys {
+  margin-left: auto;
+}
+.switcher-item > .row {
+  width: 100%;
+}
+.menu-item.divide {
+  margin-top: 4px;
+  position: relative;
+}
+.menu-item.divide::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 6px;
+  right: 6px;
+  border-top: 1px solid var(--line);
+}
+.menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--hover);
+}
+.ctx-pop .menu-item {
+  min-height: 38px;
+}
+@media (pointer: coarse) {
+  .ctx-pop .menu-item {
+    min-height: 44px;
+  }
+}
+.switcher-item.current {
+  opacity: 0.6;
+  cursor: default;
+}
+.pick-here {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.keys-help {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.keys-table {
+  width: 100%;
+}
+.keys-table caption {
+  text-align: left;
+  font-weight: 600;
+  color: var(--strong);
+  padding: 0 0 4px;
+}
+.keys-table td:first-child {
+  width: 42%;
+}
+
+/* ---- Where a note is (group › subject) in its top bar ---- */
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.crumb {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+}
+.crumb:hover {
+  color: var(--strong);
+  text-decoration: underline;
+}
+/* Narrow, or a medium window with the side panel open (it shows the place already). */
+@media (max-width: 719px) {
+  .crumbs {
+    display: none;
+  }
+}
+@media (max-width: 1100px) {
+  .with-explorer .crumbs {
+    display: none;
+  }
+}
+
+/* ---- Code blocks: Copy beside the language ---- */
+
+.cm-hm-cb-lang {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+.cm-hm-cb-copy {
+  padding: 0 6px;
+  line-height: 1.5;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 500 0.95em var(--sans);
+  cursor: pointer;
+}
+.cm-hm-cb-copy:hover,
+.cm-hm-cb-copy:focus-visible {
+  color: var(--strong);
+  border-color: var(--accent);
+}
+
+/* People who ask the system for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Muted text on the selection color is under 4.5:1: the active row's place uses the body color. */
+.explorer-link.active .explorer-where {
+  color: var(--text);
+}
+
+/* Flashcards waiting: a quiet line, an option rather than a call to action. */
+.subj-review-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.subj-review-quiet:hover,
+.subj-review-quiet:focus-visible {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+}
+.reader-foot-ch {
+  min-width: 0;
+  max-width: 40ch;
+}
+
+/* Study: suggestions for today (at most three, no counts), My notebook, Try to recall and the
+   review points (ui/study/Notebook, ui/study/Recall). */
+.today-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+.today-picks .subj-panel {
+  align-items: center;
+  padding: 12px 14px;
+}
+.today-picks .subj-panel-icon {
+  width: 36px;
+  height: 36px;
+}
+.pick-recall .subj-panel-icon,
+.subj-points .subj-panel-icon {
+  background: color-mix(in srgb, var(--cyan) 16%, transparent);
+  color: var(--cyan);
+}
+.pick-recall .subj-kicker,
+.subj-points .subj-kicker {
+  color: var(--cyan);
+}
+.pick-todo .subj-panel-icon {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+.pick-todo .subj-kicker {
+  color: var(--ok);
+}
+
+.notebook-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  max-height: min(480px, 60vh);
+  overflow-y: auto;
+}
+.notebook-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+}
+.notebook-row.here {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.notebook-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.notebook-name:hover {
+  background: var(--hover);
+}
+.notebook-row.todo .notebook-name > .one-line {
+  color: var(--muted);
+}
+.notebook-check {
+  color: var(--muted);
+}
+.notebook-row.finished .notebook-check {
+  color: var(--ok);
+}
+.notebook-row.finished .notebook-name > .one-line {
+  color: var(--muted);
+}
+/* The ⋯ shows on hover, on focus and on touch screens (no hover there). */
+.notebook-more {
+  opacity: 0;
+}
+.notebook-row:hover .notebook-more,
+.notebook-row:focus-within .notebook-more {
+  opacity: 1;
+}
+@media (hover: none) {
+  .notebook-more {
+    opacity: 1;
+  }
+}
+
+.point-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.6;
+  --pt: var(--muted);
+  color: var(--pt);
+  background: color-mix(in srgb, var(--pt) 14%, transparent);
+}
+.point-difficulty { --pt: var(--h1); }
+.point-attention { --pt: var(--h2); }
+.point-important { --pt: var(--err); }
+.point-concept { --pt: var(--accent); }
+.point-summary { --pt: var(--cyan); }
+.point-tip { --pt: var(--ok); }
+
+.recall-inner {
+  gap: 16px;
+}
+.recall-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.recall-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.recall-sec.open {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.recall-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.recall-title {
+  color: var(--strong);
+  font-weight: 600;
+  flex: 1 1 12ch;
+  min-width: 0;
+}
+.recall-title.big {
+  font-family: var(--heading-font);
+}
+.recall-show {
+  margin-left: auto;
+  flex: none;
+}
+.recall-try {
+  width: 100%;
+  min-height: 2.4em;
+  resize: vertical;
+  font: inherit;
+  font-size: 0.92rem;
+}
+.recall-text {
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  min-width: 0;
+  overflow-x: auto;
+}
+.recall-end {
+  gap: 10px;
+  align-items: stretch;
+  padding: 14px 0 32px;
+}
+.recall-end .btn.ghost {
+  align-self: center;
+}
+.recall-grades {
+  grid-template-columns: repeat(3, 1fr);
+}
+.link-btn {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.link-btn:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.import-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.import-choice.on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.import-choice input {
+  margin-top: 12px;
+  accent-color: var(--accent);
+}
+.recall-where {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: -4px;
+}
+
+/* A notebook chapter marked finished, in the note bar. */
+.btn.is-done {
+  color: var(--ok);
+}
+.recall-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.recall-source > span {
+  flex: 1;
+  min-width: 200px;
+}
+.hub-kids .subj-kid {
+  min-height: 88px;
+}
+.subj-hub {
+  padding-top: 20px;
+  padding-bottom: 32px;
+}
+.subj-hub .link-btn {
+  color: var(--accent);
+  text-decoration: underline;
+}
+/* Labelled buttons in the note bar keep to one line. */
+.note-bar .btn {
+  white-space: nowrap;
+}
+
+/* Study: Hub or study folder (new subject, subject settings) and the search over sub-subjects. */
+.kind-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+.kind-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kind-opt.on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.kind-opt-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--muted);
+}
+.kind-opt.on .kind-opt-icon {
+  color: var(--accent);
+}
+.kind-opt .list-meta {
+  white-space: normal;
+}
+.kids-toolbar .note-sort {
+  width: auto;
+}
+.subj-kid .note-tag {
+  margin-right: 6px;
+}
+.kid-why {
+  font-style: italic;
+}
+.kind-fixed {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2, var(--surface));
+}
+.kind-fixed .list-meta {
+  white-space: normal;
+}
+.subj-cover-pic,
+.subj-kid-pic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+}
+.subj-cover-pic {
+  aspect-ratio: 3 / 1;
+  width: 100%;
+}
+.subj-kid-pic {
+  aspect-ratio: 16 / 6;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+/* A cover picture, framed (Covers.tsx): the box crops, the picture fills it and zooms. */
+.cover-box {
+  position: relative;
+  overflow: hidden;
+}
+.subj-hero-pic.cover-box {
+  position: absolute;
+}
+.cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+.cover-adjust {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  cursor: grab;
+  touch-action: none;
+  background: var(--bg);
+}
+.cover-adjust:active {
+  cursor: grabbing;
+}
+.cover-adjust:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cover-zoom {
+  gap: 10px;
+}
+.cover-zoom input {
+  flex: 1;
+}
+.cover-adjust-previews {
+  gap: 10px;
+  align-items: center;
+}
+.cover-adjust-card {
+  display: block;
+  width: 160px;
+  border-radius: 8px;
+}
+.kind-choose {
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #e0a040 55%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, #e0a040 8%, var(--surface));
+}
+.kind-choose-head {
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+  color: #e0a040;
 }

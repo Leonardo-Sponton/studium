@@ -11,7 +11,7 @@ import { t } from "../../i18n";
 // A subject's exercises (data/study exercises/): lists written in the app or imported as .md
 // (opened in the editor), PDFs (opened in the device's PDF app) and links to exercise sites.
 
-export function ExercisesBox(props: { subject: Subject; onOpen(path: string): void; onNew(title: string): void }) {
+export function ExercisesBox(props: { subject: Subject; onOpen(path: string): void; onNew(title: string): void; heading?: React.ReactNode }) {
   const { notes, platform, bump, toast, confirmDelete } = useApp();
   const s = props.subject;
   const ex = s.exercises;
@@ -49,7 +49,8 @@ export function ExercisesBox(props: { subject: Subject; onOpen(path: string): vo
 
   return (
     <>
-      <div className="task-notes-head row" style={{ justifyContent: "flex-end", flexWrap: "wrap", gap: 4 }}>
+      <div className={props.heading ? "subj-sub-head" : "task-notes-head row"} style={{ justifyContent: props.heading ? "space-between" : "flex-end", flexWrap: "wrap", gap: 4 }}>
+        {props.heading}
         <input ref={input} type="file" accept=".md,.markdown,text/markdown,application/pdf,.pdf" multiple hidden onChange={e => pick(e.target.files)} />
         <button className="btn ghost" onClick={() => setNaming(true)}>
           <FilePlus2 size={16} /> {t.study.newExercise}
