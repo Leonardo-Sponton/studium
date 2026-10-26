@@ -20,6 +20,15 @@ contextBridge.exposeInMainWorld("studium", {
   openLink: call("shell:openLink"),
   openFile: call("shell:openFile"),
   saveBackup: call("dialog:saveBackup"),
+  repo: {
+    link: call("repo:link"),
+    unlink: call("repo:unlink"),
+    status: call("repo:status"),
+    log: call("repo:log"),
+    readFile: call("repo:readFile"),
+    openFolder: call("repo:openFolder"),
+    openTerminal: call("repo:openTerminal"),
+  },
   sync: {
     devices: call("sync:devices"),
     pcName: call("sync:pcName"),

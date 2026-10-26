@@ -18,12 +18,13 @@ import { useApp } from "../context";
 import { useBack } from "../useBack";
 import { useNoteFile, type NoteFile } from "../useNoteFile";
 import { LinksBox } from "./LinksBox";
+import { RepoBox } from "./RepoBox";
 import { TitleFiles, titledName, type TitledFile } from "./TitleFiles";
 import { t, word } from "../../i18n";
 
 // Workbench (data/study workbench/): projects made to study a subject in depth. The subject page
 // lists them (WorkbenchBox); a project page has its description, status, the draw.io model, the
-// GitHub repository, a demo, more links, files and the project notes. The notes start from a
+// GitHub repository, its folder on this PC with the git status (RepoBox), a demo, more links, files and the project notes. The notes start from a
 // guide (data/guides: standard, small, medium, large, proof of concept, clone), picked when the
 // project is made or later from the Guides button; its hints are %%comments%% removed in one tap.
 
@@ -315,6 +316,8 @@ export function WorkbenchPage(props: { project: WorkbenchProject; onBack(): void
               <UrlField f={f} name="github" label="GitHub" icon={<FolderGit2 size={15} />} placeholder="https://github.com/…" />
               <UrlField f={f} name="demo" label={t.study.fDemo} icon={<Rocket size={15} />} placeholder="https://…" />
             </div>
+
+            <RepoBox f={f} />
 
             <LinksBox dir={p.dir} links={p.links} empty={t.study.noProjectLinks} />
 

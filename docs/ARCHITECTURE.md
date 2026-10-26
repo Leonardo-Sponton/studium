@@ -16,7 +16,8 @@ src/
 │                       guides, search, trash, backup, sync, settings, appearance, drawings,
 │                       organize (rename/move/duplicate/pin from the tree, [[link]] rewriting),
 │                       notebook (numbered notes as chapters, folder import, today's picks),
-│                       recall (sections, review points, whole-note review) — see docs/LEARNING.md
+│                       recall (sections, review points, whole-note review) — see docs/LEARNING.md,
+│                       gitstatus (parses git status/log for a workbench project's local folder)
 ├── editor/             CodeMirror 6: live preview, [[links]], tables, "/" menu, render (KaTeX, Mermaid)
 ├── i18n/               en and pt-BR dictionaries (pt must have every key en has; tests check it)
 └── ui/
@@ -27,7 +28,8 @@ src/
     └── study/          the study screens: Personal study and School are areas of their own, each
                         opening on a home (Homes.tsx); tree, subject page, reader, notes, cards,
                         school, workbench
-electron/               main process (window, file API limited to the data folder, PDF export, adb sync)
+electron/               main process (window, file API limited to the data folder, PDF export, adb sync,
+                        read-only git status of linked workbench folders)
 android/                Capacitor project; StudiumFilesPlugin.java gives file access and the "Review" shortcut
 tools/                  sample data, icons, license notices, Excalidraw fonts
 ```
@@ -52,6 +54,21 @@ tools/                  sample data, icons, license notices, Excalidraw fonts
 
 The study files themselves (`study/…`) keep the Polaris format, so a Polaris `study/` folder
 can be copied into a Studium folder.
+
+## Workbench and local folders (PC)
+
+A workbench project can be linked to its folder on the PC (`ui/study/RepoBox.tsx`). The project
+gets a random `repo_id` in `project.md`; the folder's path is kept only in this PC's
+`config.json` (`repos: { id: path }`), so each computer links its own copy and the phone shows
+nothing. The main process picks the folder with its own dialog (the page never sends a path),
+keeps the repository's top folder, and only reads there, with `GIT_OPTIONAL_LOCKS=0`:
+`git status --porcelain=v2 --branch -z`, `git for-each-ref` (branches here and on the remote),
+`git ls-files` (the file tree) and `git log`, 50 commits per call (`repo:log`, more load while
+the history list is scrolled; a branch name is checked before it reaches git). Clicking a file
+shows it next to the tree (`repo:readFile`: up to 512 KB of text, pictures up to 5 MB, nothing
+outside the folder or inside `.git`); the text is colored by its file name with the editor's
+language list (`highlightFile` in `editor/toHtml.ts`), Markdown drawn like a note.
+"Open terminal here" starts `$TERMINAL` or the first known terminal found on `PATH`, in that folder.
 
 ## Test helpers (desktop)
 

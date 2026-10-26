@@ -343,7 +343,17 @@ function plain(s: string) {
 /** Code colored as in the editor (classes cm-tk-*), when its language is known. */
 async function highlight(code: string, lang: string): Promise<string> {
   const desc = lang ? LanguageDescription.matchLanguageName(languages, lang, true) : null;
-  if (!desc) return esc(code);
+  return desc ? colorWith(code, desc) : esc(code);
+}
+
+/** A file's text colored by its name (App.java, pom.xml...), for the workbench file viewer.
+ *  `language` is null when the name says nothing (the text comes back only escaped). */
+export async function highlightFile(code: string, name: string): Promise<{ html: string; language: string | null }> {
+  const desc = LanguageDescription.matchFilename(languages, name);
+  return desc ? { html: await colorWith(code, desc), language: desc.name } : { html: esc(code), language: null };
+}
+
+async function colorWith(code: string, desc: LanguageDescription): Promise<string> {
   try {
     const support = await desc.load();
     let out = "";

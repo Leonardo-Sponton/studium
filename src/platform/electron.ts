@@ -1,5 +1,5 @@
 import type { FileInfo, Storage } from "../storage/types";
-import type { Device, Platform, SyncBridge } from "./types";
+import type { Device, Platform, RepoBridge, SyncBridge } from "./types";
 
 // Functions exposed by electron/preload.cjs.
 interface StudiumBridge {
@@ -18,6 +18,7 @@ interface StudiumBridge {
   openLink(url: string): Promise<void>;
   openFile(path: string): Promise<void>;
   saveBackup(name: string, data: Uint8Array): Promise<string | null>;
+  repo: RepoBridge;
   sync: {
     devices(): Promise<{ adb: boolean; list: Device[] }>;
     pcName(): Promise<string>;
@@ -95,6 +96,7 @@ export function electronPlatform(): Platform {
     onFileChanged: cb => b.onFileChanged(cb),
     onClosing: flush => b.onClosing(flush),
     saveBackup: (name, data) => b.saveBackup(name, data),
+    repo: b.repo,
     sync: syncBridge(b),
   };
 }

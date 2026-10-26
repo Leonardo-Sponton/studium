@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markdownToHtml } from "../src/editor/toHtml";
+import { highlightFile, markdownToHtml } from "../src/editor/toHtml";
 
 describe("Markdown to HTML (PDF export)", () => {
   it("blocks and inline marks", async () => {
@@ -52,5 +52,17 @@ describe("Markdown to HTML (PDF export)", () => {
   it("code blocks keep their text", async () => {
     const html = await markdownToHtml("```\nif (a < b) {}\n```\n");
     expect(html).toContain("<pre class=\"code\"><code>if (a &lt; b) {}</code></pre>");
+  });
+});
+
+describe("file viewer colors (workbench)", () => {
+  it("picks the language from the file name and escapes the text", async () => {
+    const java = await highlightFile("public class A {\n  int x = 1; // <b>\n}", "A.java");
+    expect(java.language).toBe("Java");
+    expect(java.html).toContain('<span class="cm-tk-kw">public</span>');
+    expect(java.html).toContain("&lt;b&gt;");
+    expect(java.html.split("\n")).toHaveLength(3);
+    const plain = await highlightFile("a <b>", ".gitignore");
+    expect(plain).toEqual({ html: "a &lt;b&gt;", language: null });
   });
 });

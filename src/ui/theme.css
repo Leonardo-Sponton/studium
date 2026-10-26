@@ -5895,3 +5895,708 @@ kbd,
   font-weight: 600;
   color: #e0a040;
 }
+
+/* Workbench: the project's folder on this PC and its git status (ui/study/RepoBox). */
+.repo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+.repo-empty {
+  flex-direction: row;
+  align-items: flex-start;
+  border-style: dashed;
+  background: transparent;
+}
+.repo-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.repo-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.repo-where {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.repo-where strong {
+  color: var(--strong);
+}
+.repo-head-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.repo-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.repo-chip {
+  --chip: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--chip);
+  background: color-mix(in srgb, var(--chip) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip) 30%, transparent);
+  white-space: nowrap;
+}
+.repo-chip.branch {
+  --chip: var(--cyan);
+  font-family: var(--mono, monospace);
+}
+.repo-chip.ok {
+  --chip: var(--ok);
+}
+.repo-chip.push {
+  --chip: var(--accent);
+}
+.repo-chip.pull {
+  --chip: var(--h3);
+}
+.repo-updated {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.repo-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px 28px;
+  align-items: stretch;
+}
+.repo-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.repo-col-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.repo-group {
+  --g: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.repo-group.staged {
+  --g: var(--ok);
+}
+.repo-group.changed {
+  --g: var(--h3);
+}
+.repo-group.conflict {
+  --g: var(--err);
+}
+.repo-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+.repo-group-head strong {
+  color: var(--strong);
+  white-space: nowrap;
+}
+.repo-hint {
+  flex-basis: 100%;
+  padding-left: 16px;
+}
+.repo-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--g);
+}
+.repo-count {
+  flex: 0 0 auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--g);
+  background: color-mix(in srgb, var(--g) 16%, transparent);
+}
+.repo-files {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  display: flex;
+  flex-direction: column;
+}
+.repo-files li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+.repo-files li:hover {
+  background: var(--hover);
+}
+.repo-code {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--g);
+  background: color-mix(in srgb, var(--g) 16%, transparent);
+}
+.repo-file {
+  flex: 1;
+  min-width: 0;
+}
+.repo-name {
+  color: var(--strong);
+}
+.repo-more {
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+.repo-clean {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+.repo-clean strong {
+  color: var(--strong);
+}
+/* Last commits: a small timeline. */
+.repo-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.repo-log li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 0 12px 20px;
+}
+.repo-log li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  box-sizing: border-box;
+}
+.repo-log li.newest::before {
+  background: var(--accent);
+}
+.repo-log li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 17px;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+.repo-log li:last-child {
+  padding-bottom: 0;
+}
+.repo-subject {
+  color: var(--strong);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.repo-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--err);
+  background: color-mix(in srgb, var(--err) 10%, transparent);
+  overflow-wrap: anywhere;
+}
+.repo-source {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 520px) {
+  .repo-label {
+    display: none;
+  }
+  .repo-card {
+    padding: 12px;
+  }
+}
+.repo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+.repo-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.repo-count.plain {
+  --g: var(--muted);
+}
+.repo-col-head .repo-count {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+}
+.repo-ref {
+  margin-left: auto;
+  max-width: 55%;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  font-family: var(--mono);
+}
+/* A list that scrolls inside the card (history, branches, files). */
+.repo-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 6px 2px 0;
+  scrollbar-width: thin;
+}
+.repo-scroll.short {
+  max-height: 300px;
+}
+/* A list that takes the height of its row (set by the column next to it) instead of its own:
+   contain:size keeps its content from making the row taller. */
+.repo-col.fill {
+  min-height: 0;
+}
+.repo-scroll.fill,
+.repo-view-body {
+  flex: 1 1 auto;
+  contain: size;
+  max-height: none;
+}
+.repo-scroll.fill {
+  min-height: 320px;
+}
+.repo-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.repo-end {
+  padding: 4px 0 2px 20px;
+}
+.repo-log li.repo-day {
+  padding: 4px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.repo-log li.repo-day::before,
+.repo-log li.repo-day::after {
+  display: none;
+}
+.repo-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 3px 0 2px;
+}
+.repo-refs .repo-chip,
+.repo-branch-line .repo-chip {
+  padding: 1px 7px;
+  font-size: 0.72rem;
+}
+.repo-chip.remote {
+  --chip: var(--muted);
+  font-family: var(--mono);
+}
+.repo-chip.local {
+  --chip: var(--cyan);
+  font-family: var(--mono);
+}
+.repo-chip.tag {
+  --chip: var(--h2);
+}
+.repo-chip.gone {
+  --chip: var(--err);
+}
+.repo-sub-title {
+  padding: 2px 0;
+}
+.repo-branches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.repo-branch-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.repo-branch-row:hover {
+  background: var(--hover);
+}
+.repo-branch-row.on {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.repo-branch-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.repo-branch-icon {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+.repo-branch-row.current .repo-branch-icon {
+  color: var(--cyan);
+}
+.repo-branch-name {
+  min-width: 0;
+  color: var(--strong);
+  font-size: 0.88rem;
+}
+.repo-branch-sub {
+  padding-left: 20px;
+}
+/* File tree. */
+.repo-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.repo-tree li {
+  min-width: 0;
+}
+.repo-tree-row {
+  --g: var(--muted);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+}
+.repo-tree-row.dir {
+  cursor: pointer;
+  color: var(--strong);
+}
+.repo-tree-row:hover {
+  background: var(--hover);
+}
+.repo-tree-row > svg {
+  flex: 0 0 auto;
+}
+.repo-tree-row .one-line {
+  flex: 1;
+  min-width: 0;
+}
+.repo-tree-folder {
+  color: var(--h3);
+}
+.repo-tree-pad {
+  flex: 0 0 14px;
+}
+.repo-tree-row.staged {
+  --g: var(--ok);
+}
+.repo-tree-row.changed {
+  --g: var(--h3);
+}
+.repo-tree-row.conflict {
+  --g: var(--err);
+}
+.repo-tree-row.file:is(.staged, .changed, .conflict, .untracked) .one-line {
+  color: var(--strong);
+}
+.repo-tree-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--h3);
+}
+/* Clickable file rows (Changes list, tree) and the file viewer next to the tree. */
+.repo-files li {
+  padding: 0;
+}
+.repo-file-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.repo-file-row:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.repo-tree-row.file {
+  cursor: pointer;
+}
+.repo-tree-row.on,
+.repo-tree-row.on:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.repo-browse {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 22px 28px;
+  align-items: stretch;
+}
+.repo-browse .repo-scroll {
+  max-height: 520px;
+}
+.repo-browse.wide {
+  grid-template-columns: minmax(0, 1fr);
+}
+.repo-browse.wide .repo-view-body {
+  min-height: 520px;
+}
+@container repo (max-width: 640px) {
+  .repo-browse {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .repo-scroll.fill {
+    min-height: 380px;
+  }
+}
+.repo-card {
+  container: repo / inline-size;
+}
+.repo-seg {
+  margin-left: auto;
+}
+.repo-seg button {
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.repo-view-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 180px;
+  padding: 24px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-align: center;
+}
+.repo-view-empty > span:first-of-type {
+  color: var(--strong);
+}
+.repo-view {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  overflow: hidden;
+}
+.repo-view-head {
+  --g: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 6px 6px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.repo-view-head .one-line {
+  flex: 1;
+  min-width: 0;
+}
+.repo-view-head strong {
+  color: var(--strong);
+}
+.repo-view-head.staged {
+  --g: var(--ok);
+}
+.repo-view-head.changed {
+  --g: var(--h3);
+}
+.repo-view-head.conflict {
+  --g: var(--err);
+}
+.repo-view-meta {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.repo-view-body {
+  min-height: 360px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.repo-view-body:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.repo-view-note {
+  display: block;
+  padding: 12px;
+}
+.repo-view-code {
+  display: grid;
+  grid-template-columns: max-content minmax(max-content, 1fr);
+  min-width: 100%;
+  width: max-content;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  /* "<=" stays two characters, as typed (not one ≤ sign). */
+  font-variant-ligatures: none;
+}
+.repo-view-code pre {
+  margin: 0;
+  padding: 8px 0;
+  font: inherit;
+  white-space: pre;
+  background: none;
+}
+.repo-view-nums {
+  position: sticky;
+  left: 0;
+  padding: 8px 10px 8px 12px !important;
+  text-align: right;
+  color: var(--muted);
+  opacity: 0.7;
+  user-select: none;
+  border-right: 1px solid var(--line);
+  background: var(--surface) !important;
+}
+.repo-view-text {
+  padding: 8px 16px 8px 12px !important;
+  color: var(--text);
+}
+.repo-view-text code {
+  font: inherit;
+  background: none;
+  padding: 0;
+}
+.repo-view-md {
+  padding: 4px 16px 12px;
+}
+.repo-view-image {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--muted) 14%, transparent) 0 25%, transparent 0 50%) 0 0 / 16px 16px;
+}
+.repo-view-image img {
+  max-width: 100%;
+  max-height: 480px;
+}
+.spin {
+  animation: repo-spin 0.9s linear infinite;
+}
+@keyframes repo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
