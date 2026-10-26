@@ -153,6 +153,13 @@ export const en = {
     kindSureOk: (kind: string) => `Yes, save as ${kind}`,
     coverLabel: "Cover",
     subjectCoverHint: "With no cover of its own, the one above it (its hub) or its group's shows.",
+    noCoverHint: "No cover: neither the one above it nor its group's shows.",
+    noCover: "No cover",
+    useCoverAbove: "Use the cover above",
+    coverSameAs: (title: string) => `Same as “${title}”`,
+    coverOfGroup: "Its group's",
+    coverNewPic: "Pick a picture…",
+    coverPicked: (name: string) => `Picture: ${name}. To frame it, use Adjust cover behind the subject's gear.`,
     kindLabel: "Type",
     subjectKinds: { study: "Study folder", hub: "Hub" } as Record<string, string>,
     kindHints: {

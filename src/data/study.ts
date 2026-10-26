@@ -206,6 +206,8 @@ export interface Subject {
   cover: string;
   /** How the cover is framed (`cover_frame: "x y zoom"`), or "" for centered. */
   coverFrame: string;
+  /** `no_cover: true`: no picture at all, not even the one above it (its hub's or group's). */
+  noCover: boolean;
   group: string;
   parent: string;
   exam: string;
@@ -850,6 +852,7 @@ export async function loadSubjects(notes: Notes, onError?: (path: string) => voi
       kind: d.kind === "hub" || d.kind === "study" ? d.kind : "",
       cover: await subjectCover(notes.storage, dir),
       coverFrame: frameText(frameOf(d.cover_frame)),
+      noCover: d.no_cover === true,
       group: str(d.group),
       parent: str(d.parent),
       exam: str(d.exam).slice(0, 10),
@@ -885,7 +888,7 @@ export const groupsOf = (subjects: Subject[]) => [...new Set(subjects.map(s => s
 
 export async function createSubject(
   notes: Notes,
-  fields: { title: string; kind?: SubjectKind; group?: string; parent?: string; course?: string; semester?: number },
+  fields: { title: string; kind?: SubjectKind; group?: string; parent?: string; course?: string; semester?: number; noCover?: boolean },
 ): Promise<Note> {
   const dir = await notes.freePath("study", slugify(fields.title), "");
   const data: Data = {
@@ -894,6 +897,7 @@ export async function createSubject(
     kind: !fields.course && fields.kind ? fields.kind : undefined,
     group: fields.group?.trim() || undefined,
     parent: fields.parent || undefined,
+    no_cover: fields.noCover || undefined,
     course: fields.course || undefined,
     semester: fields.course ? fields.semester : undefined,
     result: fields.course ? "taking" : undefined,

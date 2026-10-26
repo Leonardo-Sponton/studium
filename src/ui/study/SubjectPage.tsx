@@ -147,6 +147,18 @@ export function lineOf(all: Subject[], s: Subject): Subject[] {
   return out;
 }
 
+/**
+ * Where a subject's cover comes from: its own, or the nearest one above it (JDBC shows the Java hub's).
+ * `bare` when it, or the one above it it would take the cover from, is set to "no cover": then not
+ * even the group's shows.
+ */
+export function coverSourceOf(all: Subject[], s: Subject): { from?: Subject; bare: boolean } {
+  const from = lineOf(all, s)
+    .reverse()
+    .find(x => x.cover || x.noCover);
+  return from?.cover ? { from, bare: false } : { bare: !!from };
+}
+
 /** The group a subject shows under: its own, or its root's. */
 export const groupOf = (all: Subject[], s: Subject) => lineOf(all, s)[0].group;
 
@@ -209,9 +221,10 @@ export function SubjectPage(props: Props) {
   useBack(true, props.onBack);
   const [title, setTitle] = useState(s.title);
   const [settings, setSettings] = useState(false);
-  // Its own cover, or the nearest one above it (JDBC shows the Java hub's), or its group's.
-  const coverFrom = lineOf(props.all, s).reverse().find(x => x.cover);
+  // Its own cover, or the nearest one above it, or its group's (none when set to "no cover").
+  const { from: coverFrom, bare } = coverSourceOf(props.all, s);
   const ownCover = useImage(coverFrom?.cover ?? "", coverFrom?.coverFrame);
+  const heroCover = bare ? undefined : ownCover || props.cover;
   const page = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<SubjectTab>(props.tab);
   // The section picked in the bar: it stays lit while the page scrolls to it (a short last
@@ -298,7 +311,7 @@ export function SubjectPage(props: Props) {
     <div className="note-editor subj">
       <div className="page subj-page" ref={page}>
         <header className="subj-hero">
-          <Cover url={ownCover || props.cover} name={group || s.title} className="subj-hero-pic" />
+          <Cover url={heroCover} name={group || s.title} className="subj-hero-pic" />
           <div className="subj-hero-bar">
             <button className="btn icon subj-hero-btn" onClick={props.onBack} aria-label={t.common.back} title={t.common.back}>
               <ArrowLeft size={20} />
@@ -389,7 +402,7 @@ export function SubjectPage(props: Props) {
           </div>
         )}
       </div>
-      {settings && f.note && <Settings {...props} cover={ownCover || props.cover} f={f} onClose={() => setSettings(false)} />}
+      {settings && f.note && <Settings {...props} cover={heroCover} f={f} onClose={() => setSettings(false)} />}
       {f.dialog}
     </div>
   );
@@ -918,7 +931,12 @@ function Settings(props: Props & { f: NoteFile; onClose(): void }) {
   const parents = props.all.filter(x => !isSchool(x) && !blocked.has(x.slug)).sort((a, b) => a.title.localeCompare(b.title));
   return (
     <Dialog title={t.study.subjectSettings} onClose={props.onClose}>
-      <SubjectCover s={s} cover={props.cover} onFrame={fr => f.setData({ cover_frame: frameText(fr) || undefined })} />
+      <SubjectCover
+        s={s}
+        cover={props.cover}
+        onFrame={fr => f.setData({ cover_frame: frameText(fr) || undefined })}
+        onNoCover={no => f.setData({ no_cover: no || undefined })}
+      />
       <span className="fl">{t.study.kindLabel}</span>
       {fixed ? (
         <div className="kind-fixed">
@@ -1001,7 +1019,7 @@ function Settings(props: Props & { f: NoteFile; onClose(): void }) {
 }
 
 /** The subject's own cover: a picture over its group's, picked, changed or removed here. */
-function SubjectCover(props: { s: Subject; cover?: string; onFrame(f: CoverFrame | null): void }) {
+function SubjectCover(props: { s: Subject; cover?: string; onFrame(f: CoverFrame | null): void; onNoCover(no: boolean): void }) {
   const { notes, bump, toast } = useApp();
   const input = useRef<HTMLInputElement>(null);
   const own = useImage(props.s.cover, props.s.coverFrame);
@@ -1016,6 +1034,7 @@ function SubjectCover(props: { s: Subject; cover?: string; onFrame(f: CoverFrame
       const c = await coverData(file);
       await setSubjectCover(notes.storage, props.s.dir, c.ext, c.data);
       props.onFrame(null);
+      if (props.s.noCover) props.onNoCover(false);
       bump();
       setAdjust(true);
     } catch (e) {
@@ -1026,7 +1045,7 @@ function SubjectCover(props: { s: Subject; cover?: string; onFrame(f: CoverFrame
     <div className="stack" style={{ gap: 6 }}>
       <span className="fl">{t.study.coverLabel}</span>
       <Cover url={own || props.cover} name={props.s.group || props.s.title} className="subj-cover-pic" />
-      {!props.s.cover && <span className="list-meta">{t.study.subjectCoverHint}</span>}
+      {!props.s.cover && <span className="list-meta">{props.s.noCover ? t.study.noCoverHint : t.study.subjectCoverHint}</span>}
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
         <input ref={input} type="file" accept="image/*" hidden onChange={e => pick(e.target.files)} />
         <button className="btn ghost" onClick={() => input.current?.click()}>
@@ -1049,6 +1068,11 @@ function SubjectCover(props: { s: Subject; cover?: string; onFrame(f: CoverFrame
               <ImageMinus size={16} /> {t.study.removeCover}
             </button>
           </>
+        )}
+        {!props.s.cover && (
+          <button className="btn ghost" onClick={() => props.onNoCover(!props.s.noCover)}>
+            {props.s.noCover ? <ImagePlus size={16} /> : <ImageMinus size={16} />} {props.s.noCover ? t.study.useCoverAbove : t.study.noCover}
+          </button>
         )}
       </div>
       {adjust && own && (

@@ -15,6 +15,7 @@ import {
   LINKS_FILE,
   isExercisePath,
   createSubject,
+  setSubjectCover,
   allGroups,
   dueCards,
   isLinksPath,
@@ -49,7 +50,7 @@ import { LinksCtx } from "../links";
 import type { WikiLinks } from "../../editor/wikiLinks";
 import { useHold } from "../useHold";
 import { CourseBar, PersonalHome, SchoolHome, scheduleMeta, schoolMeta } from "./Homes";
-import { useCovers } from "./Covers";
+import { coverData, useCovers } from "./Covers";
 import { AddCard } from "./AddCard";
 import { CardReview, CardText } from "./CardReview";
 import { MaterialReader } from "./MaterialReader";
@@ -152,15 +153,22 @@ function NewSubject(props: {
   /** Made inside this subject (its folder name). */
   parent?: string;
   school: boolean;
-  onOk(title: string, group: string, parent: string, kind: "hub" | "study"): void;
+  onOk(title: string, group: string, parent: string, kind: "hub" | "study", cover: NewCover): void;
   onClose(): void;
 }) {
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<"hub" | "study">("study");
   const [group, setGroup] = useState(props.group ?? "");
   const [parent, setParent] = useState(props.parent ?? "");
+  const [cover, setCover] = useState<NewCover>("same");
+  const file = useRef<HTMLInputElement>(null);
+  const above = props.personal.find(s => s.slug === parent);
   // A group named like the subject itself would only wrap it in a second folder.
-  const ok = () => title.trim() && props.onOk(title, group.trim().toLowerCase() === title.trim().toLowerCase() ? "" : group, parent, kind);
+  const ok = () => title.trim() && props.onOk(title, group.trim().toLowerCase() === title.trim().toLowerCase() ? "" : group, parent, kind, cover);
+  const pickFile = (list: FileList | null) => {
+    const f = list?.[0];
+    if (f) setCover(f);
+  };
   const enter = (e: React.KeyboardEvent) => e.key === "Enter" && ok();
   return (
     <Dialog title={props.school ? t.school.newSubject : t.study.newSubject} onClose={props.onClose}>
@@ -196,6 +204,23 @@ function NewSubject(props: {
               </datalist>
             </>
           )}
+          <span className="fl">{t.study.coverLabel}</span>
+          <div className="segmented" role="group" aria-label={t.study.coverLabel}>
+            <button aria-pressed={cover === "same"} onClick={() => setCover("same")}>
+              {above ? t.study.coverSameAs(above.title) : group.trim() ? t.study.coverOfGroup : t.study.noCover}
+            </button>
+            <button aria-pressed={cover instanceof File} onClick={() => file.current?.click()}>
+              {t.study.coverNewPic}
+            </button>
+            {/* Nothing above to take a cover from: "none" would be the same as the first choice. */}
+            {(above || group.trim()) && (
+              <button aria-pressed={cover === "none"} onClick={() => setCover("none")}>
+                {t.study.noCover}
+              </button>
+            )}
+          </div>
+          <input ref={file} type="file" accept="image/*" hidden onChange={e => pickFile(e.target.files)} />
+          {cover instanceof File && <span className="list-meta">{t.study.coverPicked(cover.name)}</span>}
         </>
       )}
       <div className="row" style={{ justifyContent: "flex-end" }}>
@@ -209,6 +234,9 @@ function NewSubject(props: {
     </Dialog>
   );
 }
+
+/** A new subject's cover: the one above it (its hub's or group's), a picture of its own, or none. */
+type NewCover = "same" | "none" | File;
 
 /** How flashcards are written, and the cards of the open note. */
 function CardsHelp(props: { body: string; onClose(): void }) {
@@ -438,8 +466,10 @@ export function StudyView(props: {
       setPane(before.current);
       before.current = null;
     } else if (pane.kind === "subject") {
-      // Up from a personal subject is its group's page.
+      // Up from a personal subject is the subject it sits in (its hub); from the top, its group's page.
       const s = subjects.find(x => x.path === pane.path);
+      const above = s && !isSchool(s) && s.parent ? subjects.find(x => x.slug === s.parent && !isSchool(x)) : undefined;
+      if (above) return setPane({ kind: "subject", path: above.path, tab: "overview" });
       if (s && !isSchool(s)) setHomeGroup(groupOf(subjects, s) || null);
       setPane(null);
     } else if (pane.kind === "course" || pane.kind === "timetable") setPane(null);
@@ -461,11 +491,18 @@ export function StudyView(props: {
     }
   };
 
-  const createSub = (title: string, group: string, parent: string, kind: "hub" | "study") =>
+  const createSub = (title: string, group: string, parent: string, kind: "hub" | "study", cover: NewCover) =>
     run(async () => {
       setAdding(null);
       const school = section === "school" && course;
-      const n = await createSubject(notes, school ? { title, course: course.id, semester } : { title, kind, group: parent ? undefined : group, parent });
+      const n = await createSubject(
+        notes,
+        school ? { title, course: course.id, semester } : { title, kind, group: parent ? undefined : group, parent, noCover: cover === "none" },
+      );
+      if (!school && cover instanceof File) {
+        const c = await coverData(cover);
+        await setSubjectCover(notes.storage, subjectDirOf(n.path), c.ext, c.data);
+      }
       bump();
       setPane({ kind: "subject", path: n.path, tab: "overview" });
     });

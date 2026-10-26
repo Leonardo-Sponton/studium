@@ -154,6 +154,13 @@ export const pt: Messages = {
     kindSureOk: (kind: string) => `Sim, salvar como ${kind}`,
     coverLabel: "Capa",
     subjectCoverHint: "Sem capa própria, aparece a da matéria acima dela (o Hub) ou a do grupo.",
+    noCoverHint: "Sem capa: nem a da matéria acima dela nem a do grupo aparece.",
+    noCover: "Sem capa",
+    useCoverAbove: "Usar a capa de cima",
+    coverSameAs: (title: string) => `Mesma de “${title}”`,
+    coverOfGroup: "A do grupo",
+    coverNewPic: "Escolher imagem…",
+    coverPicked: (name: string) => `Imagem: ${name}. Para enquadrar, use Ajustar capa na engrenagem da matéria.`,
     kindLabel: "Tipo",
     subjectKinds: { study: "Pasta de estudos", hub: "Hub" } as Record<string, string>,
     kindHints: {
